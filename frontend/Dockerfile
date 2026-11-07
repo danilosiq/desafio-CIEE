@@ -6,6 +6,8 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 FROM base AS build
+ARG BACKEND_URL=http://backend:3333
+ENV BACKEND_URL=$BACKEND_URL
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
