@@ -27,5 +27,20 @@
     "supertest": "7.3.1",
     "tsx": "4.23.15",
     "typescript": "5.9.3"
+  },
+  "scripts": {
+    "prisma:validate": "prisma validate",
+    "prisma:generate": "prisma generate",
+    "migrate:deploy": "prisma migrate deploy",
+    "migrate:dev": "prisma migrate dev",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "test": "jest --runInBand",
+    "test:integration": "jest --config jest.integration.config.cjs --runInBand",
+    "test:e2e": "jest --config jest.e2e.config.cjs --runInBand",
+    "check": "npm run prisma:validate && npm run prisma:generate && npm run typecheck && npm test && npm run build",
+    "dev": "tsx watch src/main/Server.ts",
+    "start": "node dist/main/Server.js",
+    "seed": "prisma db seed"
   }
 }
