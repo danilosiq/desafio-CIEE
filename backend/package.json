@@ -28,6 +28,10 @@
     "tsx": "4.23.15",
     "typescript": "5.9.3"
   },
+  "overrides": {
+    "minimatch": "11.0.5",
+    "glob": "14.0.4"
+  },
   "scripts": {
     "prisma:validate": "prisma validate",
     "prisma:generate": "prisma generate",
