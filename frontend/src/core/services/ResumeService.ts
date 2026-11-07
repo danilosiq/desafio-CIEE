@@ -1,7 +1,26 @@
 import { api } from "./Api";
 import type { Resume, ResumeInput, ScanResult } from "@/core/types/Resume";
-export async function listResumes(): Promise<Resume[]> {
-  return (await api.get<Resume[]>("/resumes")).data;
+
+export type ResumeListPage = {
+  items: Resume[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+};
+
+type ResumeListResponse = ResumeListPage | Resume[];
+
+export async function listResumes({
+  page = 1,
+  limit = 30,
+}: { page?: number; limit?: number } = {}): Promise<ResumeListPage> {
+  const data = (
+    await api.get<ResumeListResponse>("/resumes", { params: { page, limit } })
+  ).data;
+  if (Array.isArray(data))
+    return { items: data, page, limit, total: data.length, totalPages: 1 };
+  return data;
 }
 export async function getResume({ id }: { id: string }): Promise<Resume> {
   return (await api.get<Resume>(`/resumes/${id}`)).data;

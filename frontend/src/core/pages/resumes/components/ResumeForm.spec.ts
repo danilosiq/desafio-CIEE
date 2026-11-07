@@ -3,8 +3,11 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ResumeForm } from "./ResumeForm";
-import { SCAN_FIXTURE_NAMES } from "@/mocks/ScanFixtures";
-import { resetMockData } from "@/mocks/MockApi";
+const SCAN_FIXTURE_NAMES = {
+  success: "curriculo-exemplo.pdf",
+  partial: "fixture-leitura-parcial.pdf",
+  error: "fixture-falha-leitura.pdf",
+} as const;
 async function uploadPdf(
   user: ReturnType<typeof userEvent.setup>,
   scenario: keyof typeof SCAN_FIXTURE_NAMES = "success",
@@ -32,7 +35,6 @@ function setup(props: Parameters<typeof ResumeForm>[0] = {}) {
 }
 beforeEach(() => {
   localStorage.clear();
-  resetMockData();
 });
 it("apresenta os cinco campos e o PDF opcional", () => {
   setup();
@@ -62,7 +64,7 @@ it("salva manualmente e informa sucesso", async () => {
   await user.type(screen.getByLabelText(/E-mail/), "pessoa@example.com");
   await user.click(screen.getByRole("button", { name: "Confirmar dados" }));
   expect(
-    await screen.findByText("Cadastro salvo na demonstração."),
+    await screen.findByText("Cadastro salvo com sucesso."),
   ).toBeInTheDocument();
 });
 it("oferece atualização para e-mail já cadastrado", async () => {
@@ -101,7 +103,7 @@ it("não bloqueia preenchimento manual após falha na leitura", async () => {
   await user.type(screen.getByLabelText(/E-mail/), "manual@example.com");
   await user.click(screen.getByRole("button", { name: "Confirmar dados" }));
   expect(
-    await screen.findByText("Cadastro salvo na demonstração."),
+    await screen.findByText("Cadastro salvo com sucesso."),
   ).toBeInTheDocument();
 });
 it("permite completar os campos não encontrados", async () => {
@@ -182,7 +184,7 @@ it("limpa os dados preenchidos sem salvar um cadastro", async () => {
   expect(screen.getByLabelText(/Nome completo/)).toHaveValue("");
   expect(screen.getByLabelText(/E-mail/)).toHaveValue("");
   expect(
-    screen.queryByText("Cadastro salvo na demonstração."),
+    screen.queryByText("Cadastro salvo com sucesso."),
   ).not.toBeInTheDocument();
 });
 
@@ -245,6 +247,6 @@ it("exige texto em Outros e não mistura texto livre com uma categoria seleciona
   ).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Confirmar dados" }));
   expect(
-    await screen.findByText("Cadastro salvo na demonstração."),
+    await screen.findByText("Cadastro salvo com sucesso."),
   ).toBeInTheDocument();
 });

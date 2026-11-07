@@ -5,8 +5,7 @@ import { AppProviders } from "@/core/providers/AppProviders";
 import { AppShell } from "@/core/components/AppShell";
 export const metadata: Metadata = {
   title: "Banco de candidatos | Desafio CIEE",
-  description:
-    "Cadastro e consulta de candidatos — demonstração do desafio CIEE.",
+  description: "Cadastro e consulta de candidatos — desafio CIEE.",
 };
 type RootLayoutProps = { children: ReactNode };
 export default function RootLayout({ children }: RootLayoutProps) {

@@ -134,26 +134,26 @@ export function ResumeAreaField({ form }: ResumeFieldsProps) {
             Informe a área de atuação
           </label>
           <Input
-            {...form.register("interestArea")}
+            {...form.register("areaOfExpertise")}
             id={`${id}-custom`}
             required
-            value={form.values.interestArea}
+            value={form.values.areaOfExpertise}
             onChange={(event) =>
-              form.change("interestArea", event.target.value)
+              form.change("areaOfExpertise", event.target.value)
             }
             placeholder="Escreva a área de atuação"
-            aria-invalid={!!form.errors.interestArea}
+            aria-invalid={!!form.errors.areaOfExpertise}
             aria-describedby={
-              form.errors.interestArea ? `${id}-error` : undefined
+              form.errors.areaOfExpertise ? `${id}-error` : undefined
             }
           />
-          {form.errors.interestArea && (
+          {form.errors.areaOfExpertise && (
             <Text
               id={`${id}-error`}
               role="alert"
               className="text-xs text-red-700"
             >
-              {form.errors.interestArea}
+              {form.errors.areaOfExpertise}
             </Text>
           )}
         </>

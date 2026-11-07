@@ -123,8 +123,7 @@ export function AreasPage() {
       <Row className="flex-wrap justify-between gap-3">
         <Text className="text-sm">
           {rows.length}{" "}
-          {rows.length === 1 ? "área cadastrada" : "áreas cadastradas"} · Dados
-          fictícios
+          {rows.length === 1 ? "área cadastrada" : "áreas cadastradas"}
         </Text>
         <div className="relative w-full sm:w-80">
           <Search

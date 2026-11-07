@@ -8,7 +8,7 @@ const sample = {
   fullName: "Pessoa Fictícia",
   email: "pessoa@example.com",
   phone: "11900000000",
-  interestArea: "TI",
+  areaOfExpertise: "TI",
   professionalSummary: "Resumo",
   createdAt: new Date("2026-01-01T00:00:00.000Z"),
   updatedAt: new Date("2026-01-01T00:00:00.000Z"),
@@ -31,7 +31,7 @@ const validBody = {
   fullName: "Pessoa Fictícia",
   email: "PESSOA@example.com",
   phone: "11900000000",
-  interestArea: "TI",
+  areaOfExpertise: "TI",
   professionalSummary: "Resumo",
 };
 
@@ -43,7 +43,7 @@ it("CA-01: cadastro manual válido persiste os cinco campos e não exige arquivo
     fullName: "Pessoa Fictícia",
     email: "pessoa@example.com",
     phone: "11900000000",
-    interestArea: "TI",
+    areaOfExpertise: "TI",
     professionalSummary: "Resumo",
   });
 });
@@ -75,7 +75,7 @@ it("CA-04/CA-05: conflito de atualização retorna 409 com existingId e não sob
     update: jest.fn().mockRejectedValue(new DuplicateEmailError("22222222-2222-4222-8222-222222222222")),
   });
   const response = await request(app).put(`/resumes/${sample.id}`).send({ ...validBody, email: "outro@example.com" }).expect(409);
-  expect(response.body).toEqual({ message: "Este e-mail já possui um cadastro.", existingId: "22222222-2222-4222-8222-222222222222" });
+  expect(response.body).toMatchObject({ code: "DUPLICATE_EMAIL", message: "Este e-mail já possui um cadastro.", existingId: "22222222-2222-4222-8222-222222222222" });
 });
 
 it("CA-05: criação duplicada retorna contrato com existingId", async () => {

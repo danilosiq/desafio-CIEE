@@ -30,7 +30,7 @@ it('returns at most 30 records, consecutive pages without overlap and an empty l
     expect(new Set([...first.items, ...second.items].map(item => item.id)).size).toBe(35);
     expect((await repository.list({ page: 3, limit: 30 })).items).toEqual([]);
     expect((await repository.list({ page: 1, limit: 5 })).items).toHaveLength(5);
-    await expect(repository.list({ page: 1, limit: 31 })).rejects.toThrow('Invalid pagination');
+    await expect(repository.list({ page: 1, limit: 31 })).rejects.toThrow('Paginação inválida');
     const tiedTime = new Date('2020-01-01T00:00:00Z');
     await client.resume.updateMany({ where: { id: { in: ids } }, data: { createdAt: tiedTime } });
     expect((await repository.list({ page: 1, limit: 30 })).items.map(item => item.id)).toEqual((await repository.list({ page: 1, limit: 30 })).items.map(item => item.id));

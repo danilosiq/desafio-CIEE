@@ -13,7 +13,7 @@ model Resume {
   fullName            String   @db.NVarChar(200)
   email               String   @unique @db.NVarChar(320)
   phone               String?  @db.NVarChar(50)
-  interestArea        String?  @db.NVarChar(200)
+  areaOfExpertise     String?  @db.NVarChar(200)
   professionalSummary String?  @db.NVarChar(Max)
   createdAt           DateTime @default(now()) @db.DateTime2
   updatedAt           DateTime @updatedAt @db.DateTime2

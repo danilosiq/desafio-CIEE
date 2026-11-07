@@ -16,7 +16,7 @@ import {
   Search,
   Users,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CreateResumeDialog } from "./components/CreateResumeDialog";
 import { ResumeCollection } from "./components/ResumeCollection";
 import { ResumeSortMenu, type ResumeSort } from "./components/ResumeSortMenu";
@@ -24,6 +24,7 @@ import { ResumeSortMenu, type ResumeSort } from "./components/ResumeSortMenu";
 export function ResumesPage() {
   const query = useResumes();
   const trigger = useRef<HTMLElement | null>(null);
+  const sentinel = useRef<HTMLDivElement | null>(null);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<ResumeSort>("alphabetical");
   const [view, setView] = useState<"list" | "grid">("list");
@@ -42,10 +43,23 @@ export function ResumesPage() {
       session: (previous?.session ?? 0) + 1,
     }));
   }
-  const rows = query.data ?? [];
+  const rows = query.data?.pages.flatMap((page) => page.items) ?? [];
+  const total = query.data?.pages[0]?.total ?? 0;
+  useEffect(() => {
+    const node = sentinel.current;
+    if (!node || !query.hasNextPage || query.isFetchingNextPage) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) void query.fetchNextPage();
+      },
+      { rootMargin: "200px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [query.hasNextPage, query.isFetchingNextPage, query.fetchNextPage, rows.length]);
   const filtered = rows
     .filter((row) =>
-      `${row.fullName} ${row.email} ${row.phone} ${row.interestArea}`
+      `${row.fullName} ${row.email} ${row.phone} ${row.areaOfExpertise}`
         .toLocaleLowerCase("pt-BR")
         .includes(search.toLocaleLowerCase("pt-BR")),
     )
@@ -198,8 +212,10 @@ export function ResumesPage() {
           <AnimatedContent contentKey={`${displayView}-${sort}`}>
             <ResumeCollection rows={filtered} view={displayView} />
           </AnimatedContent>
+          <div ref={sentinel} aria-hidden="true" />
+          {query.isFetchingNextPage && <LoadingState />}
           <Text className="mt-1 text-xs">
-            {filtered.length} de {rows.length} candidatos · Dados fictícios
+            {filtered.length} de {total || rows.length} candidatos
           </Text>
         </Column>
       )}

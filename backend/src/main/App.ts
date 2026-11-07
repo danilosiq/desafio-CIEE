@@ -16,6 +16,7 @@ import { GetResumeController } from "../modules/resumes/interfaces/http/controll
 import { UpdateResumeController } from "../modules/resumes/interfaces/http/controllers/UpdateResumeController";
 import { DeleteResumeController } from "../modules/resumes/interfaces/http/controllers/DeleteResumeController";
 import { createResumeRoutes } from "../modules/resumes/interfaces/http/routes/ResumeRoutes";
+import { createAreaRoutes } from "../modules/areas-of-expertise/interfaces/http/AreaRoutes";
 import { openApi } from "../infra/http/documentation/OpenApi";
 
 function defaultRepository(): ResumeRepository {
@@ -29,10 +30,27 @@ export function createApp(repository: ResumeRepository = defaultRepository()): e
   app.disable("x-powered-by");
   app.enable("strict routing");
   app.use(express.json({ limit: "1mb" }));
+  app.use((request, response, next) => {
+    const origin = request.headers.origin;
+    if (origin) response.setHeader("Access-Control-Allow-Origin", origin);
+    response.setHeader("Vary", "Origin");
+    response.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    if (request.method === "OPTIONS") {
+      response.status(204).end();
+      return;
+    }
+    next();
+  });
   app.get("/openapi.json", (_request, response) => { response.json(openApi); });
   app.get("/docs", (_request, response) => { response.redirect("/docs/"); });
   app.get("/docs/", swaggerUi.setup(openApi));
   app.use("/docs", swaggerUi.serve);
+  app.use("/areas-of-expertise", createAreaRoutes(() => {
+    const { PrismaAreaOfExpertiseRepository } = require("../modules/areas-of-expertise/infra/repositories/PrismaAreaOfExpertiseRepository") as typeof import("../modules/areas-of-expertise/infra/repositories/PrismaAreaOfExpertiseRepository");
+    const { getPrismaClient } = require("../infra/database/PrismaClient") as typeof import("../infra/database/PrismaClient");
+    return new PrismaAreaOfExpertiseRepository(getPrismaClient());
+  }));
   app.use("/resumes", createResumeRoutes({
     list: new ListResumesController(new ListResumesUseCase(repository)),
     create: new CreateResumeController(new CreateResumeUseCase(repository)),
@@ -41,20 +59,33 @@ export function createApp(repository: ResumeRepository = defaultRepository()): e
     remove: new DeleteResumeController(new DeleteResumeUseCase(repository)),
   }));
   const handleError: ErrorRequestHandler = (error: unknown, request, response, _next) => {
-    if (error instanceof InvalidPaginationError || error instanceof InvalidResumeDataError) {
-      response.status(400).json(error instanceof InvalidResumeDataError ? { message: error.message, details: error.details } : { message: error.message });
+    if (error instanceof SyntaxError && "status" in error && (error as { status?: unknown }).status === 400) {
+      response.status(400).json({ code: "INVALID_JSON", message: "O corpo da requisição não é um JSON válido." });
+      return;
+    }
+    if (error instanceof InvalidResumeDataError) {
+      response.status(400).json({
+        code: "VALIDATION_ERROR",
+        message: error.message,
+        details: error.details,
+        errors: error.details,
+      });
+      return;
+    }
+    if (error instanceof InvalidPaginationError) {
+      response.status(400).json({ code: "INVALID_PAGINATION", message: error.message });
       return;
     }
     if (error instanceof ResumeNotFoundError) {
-      response.status(404).json({ message: error.message });
+      response.status(404).json({ code: "NOT_FOUND", message: error.message });
       return;
     }
     if (error instanceof DuplicateEmailError) {
-      response.status(409).json({ message: error.message, existingId: error.existingId });
+      response.status(409).json({ code: "DUPLICATE_EMAIL", message: error.message, existingId: error.existingId });
       return;
     }
     console.error(`Failed to handle ${request.method} ${request.path}.`);
-    response.status(500).json({ message: "Não foi possível processar a solicitação." });
+    response.status(500).json({ code: "INTERNAL_ERROR", message: "Não foi possível processar a solicitação. Tente novamente." });
   };
   app.use(handleError);
   return app;

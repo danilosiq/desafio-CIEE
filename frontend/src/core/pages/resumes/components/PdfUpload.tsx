@@ -72,7 +72,7 @@ export function PdfUpload({
               Lendo seu currículo
             </Title>
             <Text className="text-sm">
-              Processando o arquivo na demonstração...
+              Processando o arquivo...
             </Text>
             <Text className="text-xs">
               Aguarde para revisar os dados encontrados.

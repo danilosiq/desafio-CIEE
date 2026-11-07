@@ -36,7 +36,7 @@ it("returns a safe error when persistence fails", async () => {
   try {
     repository.list.mockRejectedValueOnce(new Error("sensitive database details"));
     const response = await request(app).get("/resumes").expect(500);
-    expect(response.body).toEqual({ message: "Não foi possível processar a solicitação." });
+    expect(response.body).toMatchObject({ code: "INTERNAL_ERROR", message: expect.stringContaining("Não foi possível processar a solicitação") });
   } finally {
     log.mockRestore();
   }

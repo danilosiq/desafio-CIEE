@@ -3,7 +3,6 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AreasPage } from "./AreasPage";
-import { resetMockData } from "@/mocks/MockApi";
 import { api } from "@/core/services/Api";
 function setup() {
   const client = new QueryClient({
@@ -16,7 +15,6 @@ function setup() {
 }
 beforeEach(() => {
   localStorage.clear();
-  resetMockData();
 });
 afterEach(() => jest.restoreAllMocks());
 it("lista, pesquisa e recupera o estado vazio", async () => {

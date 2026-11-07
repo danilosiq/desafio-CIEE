@@ -85,7 +85,7 @@ export function ResumeDetailsPage({ id }: ResumeDetailsPageProps) {
           className="gap-2 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900"
         >
           <CheckCircle2 aria-hidden="true" className="size-4" />
-          Cadastro salvo com sucesso na demonstração.
+          Cadastro salvo com sucesso.
         </Row>
       )}
       <ResumeProfile resume={resume} />
@@ -96,7 +96,7 @@ export function ResumeDetailsPage({ id }: ResumeDetailsPageProps) {
           if (!deletion.isPending) setConfirm(open);
         }}
         title="Excluir candidato?"
-        description={`O cadastro de ${resume.fullName} será removido desta demonstração.`}
+        description={`O cadastro de ${resume.fullName} será removido.`}
         compact
       >
         <Column className="gap-5 p-5 sm:p-6">

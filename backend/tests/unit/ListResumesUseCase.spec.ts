@@ -11,7 +11,7 @@ it('supports smaller page sizes and later pages', async () => {
     expect(list).toHaveBeenCalledWith({ page: 3, limit: 10 });
 });
 it.each([{ limit: 31 }, { limit: 0 }, { limit: -1 }, { limit: 1.5 }, { page: 0 }, { page: -1 }, { page: NaN }, { page: Infinity }, { page: 1.5 }, { page: Number.MAX_SAFE_INTEGER }])('rejects invalid pagination %p before querying', async (input) => {
-    await expect(useCase.execute(input)).rejects.toThrow('Invalid pagination');
+    await expect(useCase.execute(input)).rejects.toThrow('Paginação inválida');
     expect(list).not.toHaveBeenCalled();
 });
 it('reports zero pages for an empty result', async () => {

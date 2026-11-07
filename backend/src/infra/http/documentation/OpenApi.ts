@@ -1,12 +1,12 @@
 const resumeSchema = {
   type: "object",
-  required: ["id", "fullName", "email", "phone", "interestArea", "professionalSummary", "createdAt", "updatedAt"],
+  required: ["id", "fullName", "email", "phone", "areaOfExpertise", "professionalSummary", "createdAt", "updatedAt"],
   properties: {
     id: { type: "string", format: "uuid" },
     fullName: { type: "string", example: "Pessoa Fictícia" },
     email: { type: "string", format: "email", example: "pessoa@example.com" },
     phone: { type: "string", nullable: true },
-    interestArea: { type: "string", nullable: true },
+    areaOfExpertise: { type: "string", nullable: true },
     professionalSummary: { type: "string", nullable: true },
     createdAt: { type: "string", format: "date-time" },
     updatedAt: { type: "string", format: "date-time" },
@@ -20,7 +20,7 @@ const resumeInputSchema = {
     fullName: { type: "string", example: "Pessoa Fictícia" },
     email: { type: "string", format: "email", example: "pessoa@example.com" },
     phone: { type: "string", nullable: true },
-    interestArea: { type: "string", nullable: true },
+    areaOfExpertise: { type: "string", nullable: true },
     professionalSummary: { type: "string", nullable: true },
   },
   additionalProperties: true,
@@ -29,15 +29,20 @@ const resumeInputSchema = {
 const messageSchema = {
   type: "object",
   required: ["message"],
-  properties: { message: { type: "string" } },
+  properties: {
+    code: { type: "string" },
+    message: { type: "string" },
+  },
 };
 
 const validationErrorSchema = {
   type: "object",
   required: ["message"],
   properties: {
+    code: { type: "string", example: "VALIDATION_ERROR" },
     message: { type: "string" },
     details: { type: "object", additionalProperties: { type: "string" } },
+    errors: { type: "object", additionalProperties: { type: "string" } },
   },
 };
 
@@ -45,6 +50,7 @@ const conflictErrorSchema = {
   type: "object",
   required: ["message", "existingId"],
   properties: {
+    code: { type: "string", example: "DUPLICATE_EMAIL" },
     message: { type: "string", example: "Este e-mail já possui um cadastro." },
     existingId: { type: "string", format: "uuid" },
   },
@@ -54,6 +60,16 @@ export const openApi = {
   openapi: "3.0.3",
   info: { title: "Desafio CIEE API", version: "0.1.0" },
   paths: {
+    "/areas-of-expertise": {
+      get: { summary: "Lista áreas de atuação.", responses: { "200": { description: "Áreas cadastradas." } } },
+      post: { summary: "Cadastra uma área de atuação.", requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/AreaInput" } } } }, responses: { "201": { description: "Área criada." }, "400": { description: "Dados inválidos." }, "409": { description: "Nome já cadastrado." } } },
+    },
+    "/areas-of-expertise/{id}": {
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+      get: { summary: "Consulta uma área.", responses: { "200": { description: "Área encontrada." }, "404": { description: "Área não encontrada." } } },
+      put: { summary: "Atualiza uma área.", requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/AreaInput" } } } }, responses: { "200": { description: "Área atualizada." }, "400": { description: "Dados inválidos." }, "404": { description: "Área não encontrada." }, "409": { description: "Nome já cadastrado." } } },
+      delete: { summary: "Exclui uma área.", responses: { "204": { description: "Área excluída." }, "404": { description: "Área não encontrada." } } },
+    },
     "/resumes": {
       get: {
         summary: "Lista currículos com paginação de até 30 registros.",
@@ -156,6 +172,7 @@ export const openApi = {
   },
   components: {
     schemas: {
+      AreaInput: { type: "object", required: ["name", "description"], properties: { name: { type: "string", maxLength: 200 }, description: { type: "string" } } },
       Resume: resumeSchema,
       ResumeInput: resumeInputSchema,
       Message: messageSchema,
