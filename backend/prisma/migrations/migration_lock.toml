@@ -1,0 +1,2 @@
+# Connector identifier emitted/expected by the Prisma 7.10.1 migration engine.
+provider = "mssql"
