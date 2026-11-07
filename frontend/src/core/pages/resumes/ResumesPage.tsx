@@ -1,25 +1,26 @@
 "use client";
-import { useRef, useState } from "react";
-import {
-  FilePlus2,
-  Plus,
-  Users,
-  LayoutGrid,
-  List,
-  Search,
-  FolderOpen,
-} from "lucide-react";
-import { compareAsc, parseISO } from "date-fns";
-import { AnimatedContent } from "@/core/components/AnimatedContent";
-import { ResumeSortMenu, type ResumeSort } from "./components/ResumeSortMenu";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Column, Row, Text, Title } from "@/core/components/Primitives";
+import { AnimatedContent } from "@/core/components/AnimatedContent";
 import { ErrorState, LoadingState } from "@/core/components/Feedback";
+import { Column, Row, Text, Title } from "@/core/components/Primitives";
 import { useIsMobile } from "@/core/hooks/UseIsMobile";
 import { useResumes } from "@/core/hooks/UseResumes";
-import { ResumeCollection } from "./components/ResumeCollection";
+import { compareAsc, parseISO } from "date-fns";
+import {
+  FilePlus2,
+  FolderOpen,
+  LayoutGrid,
+  List,
+  Plus,
+  Search,
+  Users,
+} from "lucide-react";
+import { useRef, useState } from "react";
 import { CreateResumeDialog } from "./components/CreateResumeDialog";
+import { ResumeCollection } from "./components/ResumeCollection";
+import { ResumeSortMenu, type ResumeSort } from "./components/ResumeSortMenu";
+
 export function ResumesPage() {
   const query = useResumes();
   const trigger = useRef<HTMLElement | null>(null);
@@ -61,6 +62,7 @@ export function ResumesPage() {
         (sort === "oldest" ? chronological : -chronological) || alphabetical
       );
     });
+
   return (
     <Column className="gap-6">
       <Row className="flex-wrap items-start justify-between gap-5 border-b border-slate-200 pb-6 sm:items-center">
