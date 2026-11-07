@@ -22,6 +22,31 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+  ollama:
+    image: ollama/ollama:0.40.15
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
+
+  ollama-setup:
+    image: ollama/ollama:0.40.15
+    entrypoint: ["/bin/sh", "-c"]
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    command:
+      - |
+        until ollama list >/dev/null 2>&1; do sleep 2; done
+        if ollama show qwen2.5vl:7b >/dev/null 2>&1; then
+          echo "Modelo qwen2.5vl:7b já disponível."
+        else
+          echo "Baixando qwen2.5vl:7b pela primeira vez..."
+          ollama pull qwen2.5vl:7b
+        fi
+    depends_on:
+      ollama:
+        condition: service_started
+    restart: on-failure
+
   backend:
     container_name: backend
     image: desafio-ciee-backend:local
@@ -30,6 +55,8 @@ services:
       target: runtime
     environment:
       PORT: "3333"
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5vl:7b}
       DATABASE_URL: "sqlserver://sqlserver:1433;database=${MSSQL_DATABASE:-ciee};user=sa;password=${MSSQL_SA_PASSWORD:?Configure MSSQL_SA_PASSWORD};encrypt=true;trustServerCertificate=true"
     ports:
       - "127.0.0.1:${BACKEND_PORT:-3333}:3333"
@@ -42,6 +69,8 @@ services:
     depends_on:
       sqlserver:
         condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     init: true
     restart: unless-stopped
   
@@ -63,3 +92,4 @@ services:
         condition: service_started
 volumes:
   sqlserver-data:
+  ollama-data:

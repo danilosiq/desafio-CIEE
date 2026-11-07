@@ -154,6 +154,7 @@ export const openApi = {
         },
       },
     },
+    "/ollama/status": { get: { summary: "Verifica o runtime Ollama e o modelo local configurado.", responses: { "200": { description: "Modelo disponível; inclui versão, digest e tamanho." }, "503": { description: "Runtime indisponível, modelo ausente ou configuração inválida." } } } },
     "/openapi.json": {
       get: {
         summary: "Especificação OpenAPI.",
