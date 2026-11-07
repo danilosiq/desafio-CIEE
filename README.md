@@ -92,3 +92,17 @@ O Jest inicia e encerra uma instância de produção na porta 3100. Para testar 
 - `backend`: estrutura inicial; a implementação da API é uma entrega posterior.
 
 O escopo original está em `DESAFIO CIEE.md`, o registro do desenvolvimento em `DESENVOLVIMENTO.md` e o ERD inicial em `ResumeERD.excalidraw` e `ResumeERD.png`.
+
+## Ollama no Docker
+
+O Compose inicia o Ollama como serviço separado e prepara `qwen2.5vl:7b` automaticamente no primeiro uso. Com o Docker instalado e `backend/.env.docker` configurado, execute na raiz do projeto:
+
+```bash
+docker compose --env-file backend/.env.docker up -d --build
+```
+
+O download inicial ocorre em segundo plano e ocupa cerca de 6 GB no volume `ollama-data`. As próximas inicializações reutilizam o modelo; `docker compose down -v` remove esse volume. O frontend e o backend não aguardam o download: cadastro e consulta manuais continuam disponíveis enquanto a IA é preparada. Para acompanhar, execute `docker compose --env-file backend/.env.docker logs -f ollama-setup` e consulte `GET http://localhost:3333/ollama/status`. `ready` indica que o runtime e o modelo estão presentes; não significa que a leitura de PDF já esteja implementada.
+
+O backend usa `OLLAMA_BASE_URL=http://ollama:11434` e `OLLAMA_MODEL=qwen2.5vl:7b` no Compose. Para executar o backend fora do Docker, use `OLLAMA_BASE_URL=http://127.0.0.1:11434` com um Ollama local separado e `npm run ollama:check` no diretório `backend`. Como alternativa ao serviço do Compose, uma instalação local existente pode ser usada configurando `OLLAMA_BASE_URL=http://host.docker.internal:11434` no `backend/.env.docker`.
+
+O modelo [qwen2.5vl:7b](https://ollama.com/library/qwen2.5vl:7b) ocupa aproximadamente 6 GB no disco; RAM/VRAM durante inferência depende do contexto e do sistema. A execução em containers no macOS não utiliza a GPU Apple como a instalação nativa e pode ser mais lenta. O endpoint de status informa versão do Ollama, digest e tamanho efetivo. O projeto não implementa ainda a leitura de PDF por IA.
