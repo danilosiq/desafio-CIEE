@@ -118,7 +118,7 @@ export function ResumesPage() {
               Candidatos
             </Title>
             <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-950">
-              {filtered.length}
+              {total}
             </span>
           </Row>
           <ResumeSortMenu value={sort} onChange={setSort} />
