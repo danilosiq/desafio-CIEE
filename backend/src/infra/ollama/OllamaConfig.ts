@@ -9,3 +9,12 @@ export function ollamaConfig(env: NodeJS.ProcessEnv = process.env): { baseUrl: s
   }
   return { baseUrl: url.origin, model };
 }
+
+export function ollamaInferenceConfig(env: NodeJS.ProcessEnv = process.env) {
+  const positiveInteger = (name: string, fallback: number, maximum: number): number => {
+    const value = env[name] === undefined ? fallback : Number(env[name]);
+    if (!Number.isSafeInteger(value) || value < 1 || value > maximum) throw new Error(`${name} deve ser um inteiro entre 1 e ${maximum}.`);
+    return value;
+  };
+  return { ...ollamaConfig(env), context: positiveInteger("OLLAMA_CONTEXT", 4096, 131072), concurrency: positiveInteger("OLLAMA_CONCURRENCY", 1, 16), timeoutMs: positiveInteger("OLLAMA_TIMEOUT_MS", 120000, 3600000) };
+}

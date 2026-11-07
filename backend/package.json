@@ -38,7 +38,7 @@
     "migrate:deploy": "prisma migrate deploy",
     "migrate:dev": "prisma migrate dev",
     "typecheck": "tsc --noEmit",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && node scripts/CopyPrompts.cjs",
     "test": "jest --runInBand",
     "test:integration": "jest --config jest.integration.config.cjs --runInBand",
     "test:e2e": "jest --config jest.e2e.config.cjs --runInBand",

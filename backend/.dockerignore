@@ -11,7 +11,8 @@ dist
 coverage
 test-results
 tests
-scripts
+scripts/*
+!scripts/CopyPrompts.cjs
 jest*.cjs
 src/generated
 *.log
