@@ -20,7 +20,7 @@ beforeEach(() => {
   resetMockData();
 });
 afterEach(() => jest.restoreAllMocks());
-it("mostra carregamento e depois os candidatos fictícios", async () => {
+it("mostra carregamento e depois os candidatos", async () => {
   setup();
   expect(screen.getByText("Carregando cadastros...")).toBeInTheDocument();
   expect(

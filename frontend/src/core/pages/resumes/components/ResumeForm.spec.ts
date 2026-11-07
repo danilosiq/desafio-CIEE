@@ -62,7 +62,7 @@ it("salva manualmente e informa sucesso", async () => {
   await user.type(screen.getByLabelText(/E-mail/), "pessoa@example.com");
   await user.click(screen.getByRole("button", { name: "Confirmar dados" }));
   expect(
-    await screen.findByText("Cadastro salvo na demonstração."),
+    await screen.findByText("Cadastro salvo com sucesso."),
   ).toBeInTheDocument();
 });
 it("oferece atualização para e-mail já cadastrado", async () => {
@@ -101,7 +101,7 @@ it("não bloqueia preenchimento manual após falha na leitura", async () => {
   await user.type(screen.getByLabelText(/E-mail/), "manual@example.com");
   await user.click(screen.getByRole("button", { name: "Confirmar dados" }));
   expect(
-    await screen.findByText("Cadastro salvo na demonstração."),
+    await screen.findByText("Cadastro salvo com sucesso."),
   ).toBeInTheDocument();
 });
 it("permite completar os campos não encontrados", async () => {
@@ -182,7 +182,7 @@ it("limpa os dados preenchidos sem salvar um cadastro", async () => {
   expect(screen.getByLabelText(/Nome completo/)).toHaveValue("");
   expect(screen.getByLabelText(/E-mail/)).toHaveValue("");
   expect(
-    screen.queryByText("Cadastro salvo na demonstração."),
+    screen.queryByText("Cadastro salvo com sucesso."),
   ).not.toBeInTheDocument();
 });
 
@@ -245,6 +245,6 @@ it("exige texto em Outros e não mistura texto livre com uma categoria seleciona
   ).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Confirmar dados" }));
   expect(
-    await screen.findByText("Cadastro salvo na demonstração."),
+    await screen.findByText("Cadastro salvo com sucesso."),
   ).toBeInTheDocument();
 });

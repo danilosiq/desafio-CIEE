@@ -88,10 +88,6 @@ export function AppShell({ children }: AppShellProps) {
             </p>
           </div>
           <div className="flex flex-col gap-2 sm:items-end">
-            <span className="flex w-fit items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-medium text-amber-900">
-              <span className="size-1.5 rounded-full bg-amber-500" />
-              Demonstração · dados fictícios
-            </span>
             <p className="text-xs text-slate-400">
               Desafio do CIEE feito por Danilo Dante Siqueira
             </p>

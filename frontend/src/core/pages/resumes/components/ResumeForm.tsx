@@ -100,7 +100,7 @@ export function ResumeForm({
                     className="gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-800"
                   >
                     <CheckCircle2 aria-hidden="true" className="size-4" />
-                    Cadastro salvo na demonstração.
+                    Cadastro salvo com sucesso.
                   </Row>
                 )}
               </Column>
