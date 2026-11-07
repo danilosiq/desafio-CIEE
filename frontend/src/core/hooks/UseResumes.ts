@@ -1,5 +1,11 @@
 "use client";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type InfiniteData,
+} from "@tanstack/react-query";
 import {
   createResume,
   deleteResume,
@@ -7,14 +13,24 @@ import {
   listResumes,
   scanResume,
   updateResume,
+  type ResumeListPage,
 } from "@/core/services/ResumeService";
+
 export const resumeKeys = {
   all: ["resumes"] as const,
   detail: (id: string) => ["resumes", id] as const,
 };
-export function useResumes() {
-  return useQuery({ queryKey: resumeKeys.all, queryFn: listResumes });
+
+export function useResumes(limit = 30) {
+  return useInfiniteQuery({
+    queryKey: resumeKeys.all,
+    queryFn: ({ pageParam }) => listResumes({ page: pageParam, limit }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,
+  });
 }
+
 export function useResume(id: string) {
   return useQuery({
     queryKey: resumeKeys.detail(id),
@@ -23,6 +39,7 @@ export function useResume(id: string) {
     retry: false,
   });
 }
+
 export function useSaveResume(id?: string) {
   const client = useQueryClient();
   return useMutation({
@@ -33,6 +50,7 @@ export function useSaveResume(id?: string) {
     },
   });
 }
+
 export function useScanResume() {
   return useMutation({ mutationFn: scanResume });
 }
@@ -42,11 +60,19 @@ export function useDeleteResume() {
   return useMutation({
     mutationFn: deleteResume,
     onSuccess: async (_, { id }) => {
-      client.setQueryData<Awaited<ReturnType<typeof listResumes>>>(
-        resumeKeys.all,
-        (rows) => rows?.filter((row) => row.id !== id),
+      client.setQueryData<InfiniteData<ResumeListPage>>(resumeKeys.all, (data) =>
+        data
+          ? {
+              ...data,
+              pages: data.pages.map((page) => ({
+                ...page,
+                items: page.items.filter((row) => row.id !== id),
+                total: Math.max(0, page.total - 1),
+              })),
+            }
+          : data,
       );
-      await client.invalidateQueries({ queryKey: resumeKeys.all, exact: true });
+      await client.invalidateQueries({ queryKey: resumeKeys.all });
     },
   });
 }

@@ -18,14 +18,14 @@ beforeEach(() => {
   localStorage.clear();
   resetMockData();
 });
-it("lista dados fictícios e permite consultar detalhes", async () => {
-  const rows = await listResumes();
-  expect(rows.length).toBeGreaterThan(0);
-  expect(await getResume({ id: rows[0].id })).toEqual(rows[0]);
+it("lista currículos e permite consultar detalhes", async () => {
+  const { items } = await listResumes();
+  expect(items.length).toBeGreaterThan(0);
+  expect(await getResume({ id: items[0].id })).toEqual(items[0]);
 });
 it("cadastra sem PDF e atualiza com confirmação explícita", async () => {
   const created = await createResume({ data });
-  expect((await listResumes()).find((r) => r.id === created.id)).toMatchObject(
+  expect((await listResumes()).items.find((r) => r.id === created.id)).toMatchObject(
     data,
   );
   expect(
@@ -43,14 +43,14 @@ it("bloqueia e-mail duplicado normalizando espaços e caixa", async () => {
     response: { status: 409, data: { existingId: existing.id } },
   });
   expect(
-    (await listResumes()).filter((r) => r.email === data.email),
+    (await listResumes()).items.filter((r) => r.email === data.email),
   ).toHaveLength(1);
 });
 it("não permite atualização com e-mail de outro cadastro", async () => {
-  const rows = await listResumes();
+  const { items } = await listResumes();
   const created = await createResume({ data });
   await expect(
-    updateResume({ id: created.id, data: { ...data, email: rows[0].email } }),
+    updateResume({ id: created.id, data: { ...data, email: items[0].email } }),
   ).rejects.toMatchObject({ response: { status: 409 } });
 });
 it("responde claramente para registro inexistente", async () => {
@@ -64,7 +64,7 @@ it("não aceita dados inválidos mesmo no limite de comunicação", async () => 
   ).rejects.toMatchObject({ response: { status: 422 } });
 });
 it("extração simulada devolve sugestões sem cadastrar", async () => {
-  const before = await listResumes();
+  const before = (await listResumes()).items;
   const result = await scanResume({
     file: new File(["%PDF-1.4"], "cv.pdf", { type: "application/pdf" }),
   });
@@ -72,7 +72,7 @@ it("extração simulada devolve sugestões sem cadastrar", async () => {
     fullName: expect.any(String),
     email: expect.any(String),
   });
-  expect(await listResumes()).toHaveLength(before.length);
+  expect((await listResumes()).items).toHaveLength(before.length);
 });
 it("permite campos ausentes e simula falha de extração", async () => {
   const file = new File(["%PDF-1.4"], SCAN_FIXTURE_NAMES.partial, {
@@ -94,13 +94,13 @@ it("permite campos ausentes e simula falha de extração", async () => {
 });
 
 it("exclui somente o cadastro confirmado e trata registro inexistente", async () => {
-  const rows = await listResumes();
-  await deleteResume({ id: rows[0].id });
-  expect((await listResumes()).some((r) => r.id === rows[0].id)).toBe(false);
-  await expect(getResume({ id: rows[0].id })).rejects.toMatchObject({
+  const { items } = await listResumes();
+  await deleteResume({ id: items[0].id });
+  expect((await listResumes()).items.some((r) => r.id === items[0].id)).toBe(false);
+  await expect(getResume({ id: items[0].id })).rejects.toMatchObject({
     response: { status: 404 },
   });
-  await expect(deleteResume({ id: rows[0].id })).rejects.toMatchObject({
+  await expect(deleteResume({ id: items[0].id })).rejects.toMatchObject({
     response: { status: 404 },
   });
 });
