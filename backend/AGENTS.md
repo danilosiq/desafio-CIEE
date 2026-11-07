@@ -340,14 +340,14 @@ Referências técnicas: [modelo no Ollama](https://ollama.com/library/qwen2.5vl:
 - Não implementar funcionalidades fora do escopo solicitado.
 - Preservar contratos existentes e evitar alterações de estrutura sem necessidade da tarefa.
 - Não instalar dependências sem necessidade concreta.
-- Utilizar npm para dependências e scripts, em alinhamento com o frontend.
-- Respeitar a versão declarada em `packageManager` quando o projeto estiver configurado e versionar somente `package-lock.json` como lockfile.
+- Utilizar Yarn para dependências e scripts, em alinhamento com o frontend.
+- Respeitar a versão declarada em `packageManager` quando o projeto estiver configurado e versionar somente `yarn.lock` como lockfile.
 - Não inventar comandos de testes ou build antes de verificar os scripts disponíveis.
 - Não pedir ao usuário para executar comandos de desenvolvimento, build ou inicialização; executar autonomamente os comandos necessários e autorizados.
 
 ---
 
-## Git e branches
+## Git, branches e CI/CD
 
 - É proibido desenvolver ou realizar commits diretamente na `main`, salvo permissão explícita do usuário para a tarefa em questão. Solicitar uma implementação não constitui essa permissão.
 - Utilizar `dev` como base de integração e criar as branches de trabalho a partir dela. Não desenvolver diretamente na `dev`.
@@ -355,5 +355,6 @@ Referências técnicas: [modelo no Ollama](https://ollama.com/library/qwen2.5vl:
 - Conferir a branch atual e as alterações locais. Reutilizar uma branch da tarefa já criada a partir de `dev` quando apropriado; não criar outra sem necessidade.
 - Ao criar uma branch, sincronizar a base `dev` com a origem existente por fast-forward quando possível e criar a branch com o nome informado. Não descartar alterações locais, executar reset destrutivo ou sobrescrever branches para forçar essa preparação.
 - Se o repositório, a branch `dev` ou a origem necessária não estiver disponível, informar o impedimento; não usar `main` silenciosamente como base alternativa.
+- CI e CD fazem parte da entrega do projeto para sustentar o fluxo entre branches de trabalho, `dev` e `main`, com verificações automatizadas e promoção controlada entre os ambientes definidos.
 - Mudanças em instruções ou skills não autorizam, por si só, commit, push, merge ou deploy. Seguir a autorização da tarefa para essas ações.
 

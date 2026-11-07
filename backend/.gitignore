@@ -1,5 +1,5 @@
 node_modules/
-.npm/
+.yarn/
 .next/
 dist/
 coverage/
@@ -7,7 +7,3 @@ coverage/
 .env.*
 !.env.example
 *.tsbuildinfo
-
-src/generated/
-
-!.env.docker.example

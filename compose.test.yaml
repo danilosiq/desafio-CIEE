@@ -1,6 +1,0 @@
-# Dedicated test containers; development container names remain untouched.
-services:
-  sqlserver:
-    container_name: ciee-docker-test-sqlserver
-  backend:
-    container_name: ciee-docker-test-backend

@@ -1,6 +1,0 @@
-node_modules
-.next
-coverage
-yarn.lock
-next-env.d.ts
-AGENTS.md
