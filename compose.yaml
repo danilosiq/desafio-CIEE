@@ -60,6 +60,8 @@ services:
       OLLAMA_CONTEXT: ${OLLAMA_CONTEXT:-4096}
       OLLAMA_CONCURRENCY: ${OLLAMA_CONCURRENCY:-1}
       OLLAMA_TIMEOUT_MS: ${OLLAMA_TIMEOUT_MS:-120000}
+      PDF_RENDER_SCALE: ${PDF_RENDER_SCALE:-1.5}
+      PDF_RENDER_MAX_PIXELS: ${PDF_RENDER_MAX_PIXELS:-16000000}
       DATABASE_URL: "sqlserver://sqlserver:1433;database=${MSSQL_DATABASE:-ciee};user=sa;password=${MSSQL_SA_PASSWORD:?Configure MSSQL_SA_PASSWORD};encrypt=true;trustServerCertificate=true"
     ports:
       - "127.0.0.1:${BACKEND_PORT:-3333}:3333"
