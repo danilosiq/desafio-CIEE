@@ -33,6 +33,8 @@ Este repositório contém o frontend da aplicação de leitura de curriculos, re
 - Não misturar regras de interface com comunicação de API
 - Não chamar Axios diretamente dentro de componentes
 - Centralizar chamadas HTTP em `services`
+- Formulários devem utilizar React Hook Form com validação por schema Zod, integrado por zodResolver. Não duplicar as mesmas regras em validações manuais independentes.
+- Schemas devem ser reutilizados nas fronteiras de validação e manter mensagens acessíveis junto aos campos.
 - Hooks devem concentrar lógica reutilizável
 - Componentes próprios, globais e reutilizáveis devem ficar em `src/core/components`
 - Componentes específicos devem ficar dentro da própria page
@@ -69,6 +71,9 @@ Este repositório contém o frontend da aplicação de leitura de curriculos, re
 - TailwindCSS
 - Axios
 - Tanstack Query
+- React Hook Form para gerenciamento de formulários
+- Zod com @hookform/resolvers para schemas e validação
+- Playwright para regressão e E2E de navegador, executados pelo Jest
 - Lucide Icons
 - shadCn
 - date-fns
@@ -235,6 +240,18 @@ Exemplo:
 ```
 
 ---
+
+#### Interação e movimento
+
+- Botões habilitados devem exibir `cursor-pointer`, incluindo botões de ícone e controles de visualização.
+- Itens de lista/cards navegáveis devem oferecer toda a superfície como um único link acessível, sem exigir clique no título ou chevron e sem links aninhados.
+- Menus, dialogs e transições de conteúdo devem entrar com fade e slide para cima e sair com fade e slide para baixo. Preservar a montagem durante a animação de saída e respeitar `prefers-reduced-motion`.
+
+#### Dialogs e adaptação mobile
+
+- Dialogs devem aparecer centralizados no desktop e como bottom sheets no celular, preservando o mesmo conteúdo, formulário e validação.
+- Manter título e descrição acessíveis, contenção de foco, fechamento por Escape e retorno do foco ao acionador.
+- O conteúdo deve permitir rolagem com teclado virtual, sem esconder as ações nem gerar rolagem horizontal.
 
 #### Acessibilidade
 
@@ -557,20 +574,24 @@ e que mudanças não causem regressões nos fluxos existentes.
   no jsdom. Não substituir a lógica da funcionalidade em teste.
 - Utilizar somente dados fictícios e não depender de backend ou serviços reais.
 - Antes de concluir, revisar todos os testes e executar a suíte completa com
-  `yarn test:coverage` e a checagem do repositório com `yarn fullcheck`.
+  `npm run test:coverage` e a checagem do repositório com `npm run fullcheck`.
 - Revisar cobertura e cenários ausentes; não declarar cobertura integral com
   base apenas na porcentagem.
 - Não apagar, enfraquecer ou usar `skip` em testes para esconder falhas.
 - Alterações de tamanho, layout e responsividade também devem ser conferidas no
   navegador, pois jsdom não calcula o layout real.
-- aplicar testes unitários, testes de regressão e E2E
+- Aplicar testes unitários, de regressão e E2E.
+- Testes de regressão do frontend com Playwright são requisito básico de entrega para alterações de fluxos e interfaces. Utilizar Playwright como biblioteca de automação dentro do Jest, mantendo arquivos `.spec.ts`.
+- Cobrir desktop e celular, navegação, validação dos formulários, alternância de visualização e dialogs/bottom sheets afetados. Conferir overflow, ações de confirmação/cancelamento e preservação de dados.
+- Executar `npm run test:e2e` contra o build da versão alterada antes de concluir; snapshots ou capturas isoladas não substituem testes de interação.
 
 #### Comandos
 
-- `yarn test`: executa toda a suíte Jest.
-- `yarn test:watch`: acompanha os testes durante o desenvolvimento.
-- `yarn test:coverage`: gera cobertura em `coverage/`.
-- `yarn fullcheck`: valida arquitetura, formatação, tipos, testes e build.
+- `npm test`: executa toda a suíte Jest.
+- `npm run test:watch`: acompanha os testes durante o desenvolvimento.
+- `npm run test:coverage`: gera cobertura em `coverage/`.
+- `npm run test:e2e`: executa regressão de navegador com Jest e Playwright, em desktop e celular.
+- `npm run fullcheck`: valida arquitetura, formatação, tipos, testes e build.
 
 ---
 
@@ -591,7 +612,7 @@ Objetivo: Garantir instalações e comandos consistentes em todas as máquinas.
 - Adicionar pacotes com `yarn add` ou `yarn add -D`; remover com `yarn remove`.
 - Executar ferramentas locais com `yarn exec` ou scripts do projeto.
 - Manter `nodeLinker: node-modules` em `.yarnrc.yml`.
-- Manter os testes da política de Yarn junto da suíte Jest. Toda entrega deve
+- Manter os testes da política de npm junto da suíte Jest. Toda entrega deve
   passar por `yarn fullcheck`, incluindo a validação do gerenciador de pacotes.
 - Os nomes reservados `package.json`, `yarn.lock` e `.yarnrc.yml` são exceções
   à nomenclatura PascalCase, assim como os arquivos reservados do framework.
