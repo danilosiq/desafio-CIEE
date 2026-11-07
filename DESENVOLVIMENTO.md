@@ -221,3 +221,7 @@ Validação da correção de dependências: instalação `npm ci` aprovada; audi
 ### Extração visual de currículos
 
 O prompt `ExtractResumeV1` orienta o modelo local `qwen2.5vl:7b` a sugerir somente nome, e-mail e telefone visíveis, usando `null` para campos ausentes. O contrato retorna a versão do prompt e a identificação do modelo junto da sugestão, sem registrar dados pessoais em logs nem persistir o resultado. A validação de formato não prova fidelidade ao documento nem garante resistência absoluta a instruções maliciosas; a revisão humana é obrigatória. A conversão PDF-imagem e a avaliação visual com o modelo real dependem das próximas etapas e de recursos suficientes para executar a inferência.
+
+### Recebimento e renderização de PDF
+
+O endpoint `/pdf/render` recebe um PDF multipart de até 5 MiB, valida seu conteúdo e renderiza todas as páginas em ordem com PDF.js e `@napi-rs/canvas`. Arquivo e imagens permanecem em memória, sem arquivos temporários nem persistência. A resolução é configurada por `PDF_RENDER_SCALE`. A resposta reúne as páginas em memória, portanto PDFs extensos podem aumentar o uso de recursos; falhas de renderização são reportadas sem retornar páginas parciais.
