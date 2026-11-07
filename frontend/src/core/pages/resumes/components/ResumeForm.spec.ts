@@ -3,8 +3,11 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ResumeForm } from "./ResumeForm";
-import { SCAN_FIXTURE_NAMES } from "@/mocks/ScanFixtures";
-import { resetMockData } from "@/mocks/MockApi";
+const SCAN_FIXTURE_NAMES = {
+  success: "curriculo-exemplo.pdf",
+  partial: "fixture-leitura-parcial.pdf",
+  error: "fixture-falha-leitura.pdf",
+} as const;
 async function uploadPdf(
   user: ReturnType<typeof userEvent.setup>,
   scenario: keyof typeof SCAN_FIXTURE_NAMES = "success",
@@ -32,7 +35,6 @@ function setup(props: Parameters<typeof ResumeForm>[0] = {}) {
 }
 beforeEach(() => {
   localStorage.clear();
-  resetMockData();
 });
 it("apresenta os cinco campos e o PDF opcional", () => {
   setup();

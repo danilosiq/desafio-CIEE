@@ -3,9 +3,33 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ResumeProfile } from "./ResumeProfile";
-import { resumeFixtures } from "@/mocks/ResumeFixtures";
 import { api } from "@/core/services/Api";
-import { resetMockData } from "@/mocks/MockApi";
+import type { Resume } from "@/core/types/Resume";
+
+const resumeFixtures: Resume[] = [
+  {
+    id: "ana-pereira",
+    fullName: "Ana Pereira",
+    email: "ana.pereira@example.com",
+    phone: "(11) 98765-4321",
+    areaOfExpertise: "Design de produto",
+    areaOfExpertiseId: "design",
+    professionalSummary: "Designer com interesse em experiências digitais acessíveis.",
+    createdAt: "2026-11-04T12:00:00.000Z",
+    updatedAt: "2026-11-04T12:00:00.000Z",
+  },
+  {
+    id: "lucas-oliveira",
+    fullName: "Lucas Oliveira",
+    email: "lucas.oliveira@example.com",
+    phone: "(11) 97654-3210",
+    areaOfExpertise: "Desenvolvimento frontend",
+    areaOfExpertiseId: "frontend",
+    professionalSummary: "Estudante de tecnologia com experiência em React.",
+    createdAt: "2026-11-03T14:00:00.000Z",
+    updatedAt: "2026-11-03T14:00:00.000Z",
+  },
+];
 function setup() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -27,7 +51,6 @@ function setup() {
 afterEach(() => jest.restoreAllMocks());
 beforeEach(() => {
   localStorage.clear();
-  resetMockData();
 });
 it("edita os campos no próprio perfil e desfaz sem persistir", async () => {
   const { user, onSaved } = setup();

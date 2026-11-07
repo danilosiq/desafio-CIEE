@@ -6,8 +6,11 @@ import {
   scanResume,
   updateResume,
 } from "./ResumeService";
-import { SCAN_FIXTURE_NAMES } from "@/mocks/ScanFixtures";
-import { resetMockData } from "@/mocks/MockApi";
+const SCAN_FIXTURE_NAMES = {
+  success: "curriculo-exemplo.pdf",
+  partial: "fixture-leitura-parcial.pdf",
+  error: "fixture-falha-leitura.pdf",
+} as const;
 import { EMPTY_RESUME } from "@/core/lib/ResumeValidation";
 const data = {
   ...EMPTY_RESUME,
@@ -16,7 +19,6 @@ const data = {
 };
 beforeEach(() => {
   localStorage.clear();
-  resetMockData();
 });
 it("lista currículos e permite consultar detalhes", async () => {
   const { items } = await listResumes();
