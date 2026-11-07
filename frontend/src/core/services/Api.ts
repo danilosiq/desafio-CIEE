@@ -1,6 +1,10 @@
 import axios from "axios";
-import { mockApiAdapter } from "@/mocks/MockApi";
+
+const isTest = process.env.NODE_ENV === "test";
+
 export const api = axios.create({
-  baseURL: "/mock-api",
-  adapter: mockApiAdapter,
+  baseURL: isTest
+    ? "/mock-api"
+    : (process.env.NEXT_PUBLIC_API_URL ?? "/api"),
+  ...(isTest ? { adapter: require("@/mocks/MockApi").mockApiAdapter } : {}),
 });
