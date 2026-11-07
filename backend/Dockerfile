@@ -14,6 +14,7 @@ FROM dependencies AS build
 COPY tsconfig.json tsconfig.build.json prisma.config.ts ./
 COPY prisma ./prisma
 COPY src ./src
+COPY scripts/CopyPrompts.cjs ./scripts/CopyPrompts.cjs
 RUN npm run prisma:generate && npm run build
 
 FROM build AS development
