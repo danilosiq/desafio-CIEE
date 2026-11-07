@@ -34,7 +34,7 @@ it("persists required and optional fields and reads the saved data", async () =>
     fullName: "Pessoa Fictícia",
     email: email(),
     phone: "11900000000",
-    interestArea: "TI",
+    areaOfExpertise: "TI",
     professionalSummary: "Dados fictícios",
   };
   const saved = await resumes.create(data);
@@ -46,7 +46,7 @@ it("allows absent optional fields", async () => {
     await resumes.create({ fullName: "Pessoa Fictícia", email: email() }),
   ).toMatchObject({
     phone: null,
-    interestArea: null,
+    areaOfExpertise: null,
     professionalSummary: null,
   });
 });

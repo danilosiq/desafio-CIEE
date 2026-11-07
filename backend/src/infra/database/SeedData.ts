@@ -129,6 +129,6 @@ export const seedCandidates: ResumeInput[] = Array.from({ length: 60 }, (_, inde
     fullName: `${firstNames[index % firstNames.length]} ${lastNames[Math.floor(index / firstNames.length)]}`,
     email: `candidato.seed.${String(index + 1).padStart(3, '0')}@example.com`,
     phone: String(11900000000 + index + 1),
-    interestArea: seedAreas[index % seedAreas.length].name,
+    areaOfExpertise: seedAreas[index % seedAreas.length].name,
     professionalSummary: 'Cadastro fictício gerado pela seed para desenvolvimento e demonstração.',
 }));

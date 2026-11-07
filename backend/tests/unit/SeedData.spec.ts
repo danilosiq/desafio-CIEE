@@ -12,5 +12,5 @@ it('defines exactly 60 fictitious candidates with stable, distinct emails', () =
 it('uses an existing seed area for every candidate', () => {
     expect(seedCandidates).toHaveLength(60);
     const names = new Set(seedAreas.map(area => area.name));
-    expect(seedCandidates.every(candidate => names.has(candidate.interestArea!))).toBe(true);
+    expect(seedCandidates.every(candidate => names.has(candidate.areaOfExpertise!))).toBe(true);
 });

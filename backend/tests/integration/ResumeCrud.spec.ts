@@ -25,7 +25,7 @@ afterAll(async () => {
 });
 
 it("CA-01/CA-03: persiste os cinco campos sem arquivo e recupera em detalhes/listagem", async () => {
-  const data = { fullName: "Pessoa Fictícia", email: email(), phone: "11900000000", interestArea: "TI", professionalSummary: "Resumo" };
+  const data = { fullName: "Pessoa Fictícia", email: email(), phone: "11900000000", areaOfExpertise: "TI", professionalSummary: "Resumo" };
   const saved = await resumes.create(data);
   ids.push(saved.id);
   expect(saved).toMatchObject(data);
@@ -35,10 +35,10 @@ it("CA-01/CA-03: persiste os cinco campos sem arquivo e recupera em detalhes/lis
 });
 
 it("CA-04: atualização explícita persiste novos dados", async () => {
-  const saved = await resumes.create({ fullName: "Antes", email: email(), phone: null, interestArea: null, professionalSummary: null });
+  const saved = await resumes.create({ fullName: "Antes", email: email(), phone: null, areaOfExpertise: null, professionalSummary: null });
   ids.push(saved.id);
-  const updated = await resumes.update(saved.id, { fullName: "Depois", email: saved.email, phone: "11999999999", interestArea: "Dados", professionalSummary: "Novo" });
-  expect(updated).toMatchObject({ id: saved.id, fullName: "Depois", phone: "11999999999", interestArea: "Dados", professionalSummary: "Novo" });
+  const updated = await resumes.update(saved.id, { fullName: "Depois", email: saved.email, phone: "11999999999", areaOfExpertise: "Dados", professionalSummary: "Novo" });
+  expect(updated).toMatchObject({ id: saved.id, fullName: "Depois", phone: "11999999999", areaOfExpertise: "Dados", professionalSummary: "Novo" });
 });
 
 it("CA-04/CA-05: conflito de e-mail na atualização não sobrescreve outro candidato e informa existingId", async () => {

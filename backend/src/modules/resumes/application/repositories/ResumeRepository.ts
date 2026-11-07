@@ -2,7 +2,7 @@ export type ResumeInput = {
     fullName: string;
     email: string;
     phone?: string | null;
-    interestArea?: string | null;
+    areaOfExpertise?: string | null;
     professionalSummary?: string | null;
 };
 export type ResumeData = {
@@ -10,7 +10,7 @@ export type ResumeData = {
     fullName: string;
     email: string;
     phone: string | null;
-    interestArea: string | null;
+    areaOfExpertise: string | null;
     professionalSummary: string | null;
     createdAt: Date;
     updatedAt: Date;

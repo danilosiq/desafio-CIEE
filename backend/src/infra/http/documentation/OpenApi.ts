@@ -1,12 +1,12 @@
 const resumeSchema = {
   type: "object",
-  required: ["id", "fullName", "email", "phone", "interestArea", "professionalSummary", "createdAt", "updatedAt"],
+  required: ["id", "fullName", "email", "phone", "areaOfExpertise", "professionalSummary", "createdAt", "updatedAt"],
   properties: {
     id: { type: "string", format: "uuid" },
     fullName: { type: "string", example: "Pessoa Fictícia" },
     email: { type: "string", format: "email", example: "pessoa@example.com" },
     phone: { type: "string", nullable: true },
-    interestArea: { type: "string", nullable: true },
+    areaOfExpertise: { type: "string", nullable: true },
     professionalSummary: { type: "string", nullable: true },
     createdAt: { type: "string", format: "date-time" },
     updatedAt: { type: "string", format: "date-time" },
@@ -20,7 +20,7 @@ const resumeInputSchema = {
     fullName: { type: "string", example: "Pessoa Fictícia" },
     email: { type: "string", format: "email", example: "pessoa@example.com" },
     phone: { type: "string", nullable: true },
-    interestArea: { type: "string", nullable: true },
+    areaOfExpertise: { type: "string", nullable: true },
     professionalSummary: { type: "string", nullable: true },
   },
   additionalProperties: true,

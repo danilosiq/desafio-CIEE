@@ -8,7 +8,7 @@ const sample = {
   fullName: "Pessoa Fictícia",
   email: "pessoa@example.com",
   phone: "11900000000",
-  interestArea: "TI",
+  areaOfExpertise: "TI",
   professionalSummary: "Resumo",
   createdAt: new Date("2026-01-01T00:00:00.000Z"),
   updatedAt: new Date("2026-01-01T00:00:00.000Z"),
@@ -31,7 +31,7 @@ const validBody = {
   fullName: "Pessoa Fictícia",
   email: "PESSOA@example.com",
   phone: "11900000000",
-  interestArea: "TI",
+  areaOfExpertise: "TI",
   professionalSummary: "Resumo",
 };
 
@@ -43,7 +43,7 @@ it("CA-01: cadastro manual válido persiste os cinco campos e não exige arquivo
     fullName: "Pessoa Fictícia",
     email: "pessoa@example.com",
     phone: "11900000000",
-    interestArea: "TI",
+    areaOfExpertise: "TI",
     professionalSummary: "Resumo",
   });
 });
