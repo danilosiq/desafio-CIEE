@@ -5,7 +5,7 @@ export const EMPTY_RESUME: ResumeInput = {
   fullName: "",
   email: "",
   phone: "",
-  interestArea: "",
+  areaOfExpertise: "",
   professionalSummary: "",
 };
 export const resumeSchema = z.object({
@@ -15,17 +15,17 @@ export const resumeSchema = z.object({
     .trim()
     .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Informe um e-mail válido."),
   phone: z.string().trim(),
-  interestArea: z.string().trim(),
+  areaOfExpertise: z.string().trim(),
   professionalSummary: z.string().trim(),
   areaOfExpertiseId: z.string().nullable().optional(),
 });
 export const resumeFormSchema = resumeSchema
   .extend({ areaChoice: z.string() })
   .superRefine((data, context) => {
-    if (data.areaChoice === "__other" && !data.interestArea.trim())
+    if (data.areaChoice === "__other" && !data.areaOfExpertise.trim())
       context.addIssue({
         code: "custom",
-        path: ["interestArea"],
+        path: ["areaOfExpertise"],
         message: "Informe a área de atuação.",
       });
   });

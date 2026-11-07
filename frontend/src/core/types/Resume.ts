@@ -2,7 +2,7 @@ export type ResumeInput = {
   fullName: string;
   email: string;
   phone: string;
-  interestArea: string;
+  areaOfExpertise: string;
   areaOfExpertiseId?: string | null;
   professionalSummary: string;
 };

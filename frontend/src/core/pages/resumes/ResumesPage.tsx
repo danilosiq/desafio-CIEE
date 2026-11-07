@@ -45,7 +45,7 @@ export function ResumesPage() {
   const rows = query.data ?? [];
   const filtered = rows
     .filter((row) =>
-      `${row.fullName} ${row.email} ${row.phone} ${row.interestArea}`
+      `${row.fullName} ${row.email} ${row.phone} ${row.areaOfExpertise}`
         .toLocaleLowerCase("pt-BR")
         .includes(search.toLocaleLowerCase("pt-BR")),
     )

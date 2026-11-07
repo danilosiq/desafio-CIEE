@@ -1,7 +1,11 @@
 import { api } from "./Api";
 import type { Resume, ResumeInput, ScanResult } from "@/core/types/Resume";
+
+type ResumeListResponse = Resume[] | { items: Resume[] };
+
 export async function listResumes(): Promise<Resume[]> {
-  return (await api.get<Resume[]>("/resumes")).data;
+  const data = (await api.get<ResumeListResponse>("/resumes")).data;
+  return Array.isArray(data) ? data : data.items;
 }
 export async function getResume({ id }: { id: string }): Promise<Resume> {
   return (await api.get<Resume>(`/resumes/${id}`)).data;

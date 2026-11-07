@@ -43,7 +43,7 @@ export function ResumeCollection({ rows, view }: ResumeCollectionProps) {
                 </span>
                 {view === "grid" && (
                   <p className="mt-1 truncate text-xs text-slate-500">
-                    {resume.interestArea || "Área não informada"}
+                    {resume.areaOfExpertise || "Área não informada"}
                   </p>
                 )}
               </div>
@@ -71,7 +71,7 @@ export function ResumeCollection({ rows, view }: ResumeCollectionProps) {
                   {formatPhone(resume.phone) || "Não informado"}
                 </span>
                 <span className="w-fit max-w-full rounded-md bg-blue-50 px-2.5 py-1 text-[11px] font-medium text-blue-900">
-                  {resume.interestArea || "Área não informada"}
+                  {resume.areaOfExpertise || "Área não informada"}
                 </span>
                 <span
                   aria-hidden="true"

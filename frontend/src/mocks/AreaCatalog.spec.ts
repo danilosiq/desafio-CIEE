@@ -51,7 +51,7 @@ it("bloqueia exclusão com candidatos e reflete renomeação em candidatos vincu
     description: design.description,
   });
   expect((await api.get("/resumes/ana-pereira")).data).toMatchObject({
-    interestArea: "Design atualizado",
+    areaOfExpertise: "Design atualizado",
     areaOfExpertiseId: design.id,
   });
 });
@@ -63,12 +63,12 @@ it("preserva Outros no candidato sem criar nem vincular automaticamente uma cate
       email: "livre@example.com",
       phone: "",
       professionalSummary: "",
-      interestArea: "Área livre",
+      areaOfExpertise: "Área livre",
       areaOfExpertiseId: null,
     })
   ).data;
   expect(created).toMatchObject({
-    interestArea: "Área livre",
+    areaOfExpertise: "Área livre",
     areaOfExpertiseId: null,
   });
   expect((await api.get("/areas-of-expertise")).data).toEqual(before);

@@ -6,7 +6,7 @@ export const resumeFixtures: Resume[] = [
     fullName: "Ana Pereira",
     email: "ana.pereira@example.com",
     phone: "(11) 98765-4321",
-    interestArea: "Design de produto",
+    areaOfExpertise: "Design de produto",
     areaOfExpertiseId: "design",
     professionalSummary:
       "Designer com interesse em experiências digitais acessíveis e pesquisa com usuários.",
@@ -18,7 +18,7 @@ export const resumeFixtures: Resume[] = [
     fullName: "Lucas Oliveira",
     email: "lucas.oliveira@example.com",
     phone: "(11) 97654-3210",
-    interestArea: "Desenvolvimento frontend",
+    areaOfExpertise: "Desenvolvimento frontend",
     areaOfExpertiseId: "frontend",
     professionalSummary:
       "Estudante de tecnologia com experiência em React e vontade de transformar ideias em produtos.",
@@ -30,7 +30,7 @@ export const resumeFixtures: Resume[] = [
     fullName: "Beatriz Santos",
     email: "beatriz.santos@example.com",
     phone: "(21) 96543-2109",
-    interestArea: "Marketing e comunicação",
+    areaOfExpertise: "Marketing e comunicação",
     areaOfExpertiseId: "marketing",
     professionalSummary:
       "Interesse em comunicação, produção de conteúdo e planejamento de campanhas.",
@@ -42,7 +42,7 @@ export const resumeFixtures: Resume[] = [
     fullName: "Rafael Costa",
     email: "rafael.costa@example.com",
     phone: "",
-    interestArea: "Análise de dados",
+    areaOfExpertise: "Análise de dados",
     areaOfExpertiseId: "dados",
     professionalSummary:
       "Estudante de administração com conhecimentos em análise de dados e visualização de informações.",
@@ -54,7 +54,7 @@ export const resumeFixtures: Resume[] = [
     fullName: "Júlia Almeida",
     email: "julia.almeida@example.com",
     phone: "(31) 99876-5432",
-    interestArea: "Recursos humanos",
+    areaOfExpertise: "Recursos humanos",
     areaOfExpertiseId: "rh",
     professionalSummary:
       "Interesse em recrutamento, desenvolvimento de pessoas e cultura organizacional.",

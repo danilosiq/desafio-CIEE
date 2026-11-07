@@ -31,9 +31,9 @@ it("cadastra sem PDF e atualiza com confirmação explícita", async () => {
   expect(
     await updateResume({
       id: created.id,
-      data: { ...data, interestArea: "Design" },
+      data: { ...data, areaOfExpertise: "Design" },
     }),
-  ).toMatchObject({ interestArea: "Design" });
+  ).toMatchObject({ areaOfExpertise: "Design" });
 });
 it("bloqueia e-mail duplicado normalizando espaços e caixa", async () => {
   const existing = await createResume({ data });

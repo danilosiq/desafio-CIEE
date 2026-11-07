@@ -25,10 +25,10 @@ export function useResumeForm({ initial, onSaved }: UseResumeFormProps) {
         fullName: initial.fullName,
         email: initial.email,
         phone: formatPhone(initial.phone),
-        interestArea: initial.areaOfExpertiseId ? "" : initial.interestArea,
+        areaOfExpertise: initial.areaOfExpertiseId ? "" : initial.areaOfExpertise,
         areaOfExpertiseId: initial.areaOfExpertiseId ?? null,
         areaChoice:
-          initial.areaOfExpertiseId ?? (initial.interestArea ? "__other" : ""),
+          initial.areaOfExpertiseId ?? (initial.areaOfExpertise ? "__other" : ""),
         professionalSummary: initial.professionalSummary,
       }
     : { ...EMPTY_RESUME, areaOfExpertiseId: null, areaChoice: "" };
@@ -134,7 +134,7 @@ export function useResumeForm({ initial, onSaved }: UseResumeFormProps) {
         ...input,
         areaOfExpertiseId:
           areaChoice && areaChoice !== "__other" ? areaChoice : null,
-        interestArea: areaChoice === "__other" ? input.interestArea : "",
+        areaOfExpertise: areaChoice === "__other" ? input.areaOfExpertise : "",
       });
       setSaved(true);
       onSaved?.(result);
@@ -155,7 +155,7 @@ export function useResumeForm({ initial, onSaved }: UseResumeFormProps) {
   return {
     values,
     initialArea: initial?.areaOfExpertiseId
-      ? { id: initial.areaOfExpertiseId, name: initial.interestArea }
+      ? { id: initial.areaOfExpertiseId, name: initial.areaOfExpertise }
       : null,
     errors,
     register,

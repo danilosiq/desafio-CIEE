@@ -35,7 +35,7 @@ const labels: Record<
   fullName: "Nome completo",
   email: "E-mail",
   phone: "Telefone",
-  interestArea: "Área ou cargo de interesse",
+  areaOfExpertise: "Área ou cargo de interesse",
   professionalSummary: "Resumo profissional",
 };
 export function ResumeProfile({
@@ -145,7 +145,7 @@ export function ResumeProfile({
                     {resume.fullName}
                   </Title>
                   <span className="w-fit max-w-full rounded-md bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-900">
-                    {resume.interestArea || "Área não informada"}
+                    {resume.areaOfExpertise || "Área não informada"}
                   </span>
                 </Column>
               )}

@@ -38,7 +38,7 @@ function readRows(): Resume[] {
             "areaOfExpertiseId",
           )
             ? row.areaOfExpertiseId
-            : (readMockAreas().find((area) => area.name === row.interestArea)
+            : (readMockAreas().find((area) => area.name === row.areaOfExpertise)
                 ?.id ?? null),
         }));
         return rows!;
@@ -98,14 +98,14 @@ function presentResume(row: Resume): Resume {
   const area = row.areaOfExpertiseId
     ? readMockAreas().find((item) => item.id === row.areaOfExpertiseId)
     : undefined;
-  return { ...row, interestArea: area?.name ?? row.interestArea };
+  return { ...row, areaOfExpertise: area?.name ?? row.areaOfExpertise };
 }
 function normalize(data: ResumeInput): ResumeInput {
   return {
     fullName: data.fullName.trim(),
     email: data.email.trim().toLowerCase(),
     phone: data.phone.trim(),
-    interestArea: data.areaOfExpertiseId ? "" : data.interestArea.trim(),
+    areaOfExpertise: data.areaOfExpertiseId ? "" : data.areaOfExpertise.trim(),
     areaOfExpertiseId: data.areaOfExpertiseId ?? null,
     professionalSummary: data.professionalSummary.trim(),
   };
@@ -222,7 +222,7 @@ export const mockApiAdapter: AxiosAdapter = async (config) => {
         "fullName",
         "email",
         "phone",
-        "interestArea",
+        "areaOfExpertise",
         "professionalSummary",
       ].some((key) => typeof raw[key] !== "string")
     )
