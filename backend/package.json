@@ -45,6 +45,7 @@
     "check": "npm run prisma:validate && npm run prisma:generate && npm run typecheck && npm test && npm run build",
     "dev": "tsx watch src/main/Server.ts",
     "start": "node dist/main/Server.js",
-    "seed": "prisma db seed"
+    "seed": "prisma db seed",
+    "ollama:check": "tsx src/infra/ollama/CheckOllama.ts"
   }
 }
