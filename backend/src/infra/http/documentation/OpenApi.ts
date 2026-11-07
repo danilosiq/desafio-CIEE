@@ -60,6 +60,16 @@ export const openApi = {
   openapi: "3.0.3",
   info: { title: "Desafio CIEE API", version: "0.1.0" },
   paths: {
+    "/areas-of-expertise": {
+      get: { summary: "Lista áreas de atuação.", responses: { "200": { description: "Áreas cadastradas." } } },
+      post: { summary: "Cadastra uma área de atuação.", requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/AreaInput" } } } }, responses: { "201": { description: "Área criada." }, "400": { description: "Dados inválidos." }, "409": { description: "Nome já cadastrado." } } },
+    },
+    "/areas-of-expertise/{id}": {
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }],
+      get: { summary: "Consulta uma área.", responses: { "200": { description: "Área encontrada." }, "404": { description: "Área não encontrada." } } },
+      put: { summary: "Atualiza uma área.", requestBody: { required: true, content: { "application/json": { schema: { $ref: "#/components/schemas/AreaInput" } } } }, responses: { "200": { description: "Área atualizada." }, "400": { description: "Dados inválidos." }, "404": { description: "Área não encontrada." }, "409": { description: "Nome já cadastrado." } } },
+      delete: { summary: "Exclui uma área.", responses: { "204": { description: "Área excluída." }, "404": { description: "Área não encontrada." } } },
+    },
     "/resumes": {
       get: {
         summary: "Lista currículos com paginação de até 30 registros.",
@@ -162,6 +172,7 @@ export const openApi = {
   },
   components: {
     schemas: {
+      AreaInput: { type: "object", required: ["name", "description"], properties: { name: { type: "string", maxLength: 200 }, description: { type: "string" } } },
       Resume: resumeSchema,
       ResumeInput: resumeInputSchema,
       Message: messageSchema,
