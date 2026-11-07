@@ -29,6 +29,18 @@ export function createApp(repository: ResumeRepository = defaultRepository()): e
   app.disable("x-powered-by");
   app.enable("strict routing");
   app.use(express.json({ limit: "1mb" }));
+  app.use((request, response, next) => {
+    const origin = request.headers.origin;
+    if (origin) response.setHeader("Access-Control-Allow-Origin", origin);
+    response.setHeader("Vary", "Origin");
+    response.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+    response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    if (request.method === "OPTIONS") {
+      response.status(204).end();
+      return;
+    }
+    next();
+  });
   app.get("/openapi.json", (_request, response) => { response.json(openApi); });
   app.get("/docs", (_request, response) => { response.redirect("/docs/"); });
   app.get("/docs/", swaggerUi.setup(openApi));
