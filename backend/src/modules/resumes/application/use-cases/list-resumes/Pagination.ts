@@ -1,8 +1,8 @@
 export class InvalidPaginationError extends Error {
-    constructor() {
-        super('Invalid pagination: page must be a positive integer and limit must be between 1 and 30.');
-        this.name = 'InvalidPaginationError';
-    }
+  constructor() {
+    super("Paginação inválida: informe 'page' como inteiro maior que 0 e 'limit' entre 1 e 30.");
+    this.name = "InvalidPaginationError";
+  }
 }
 export type PaginationInput = {
     page?: number;

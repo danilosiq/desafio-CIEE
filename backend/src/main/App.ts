@@ -41,20 +41,33 @@ export function createApp(repository: ResumeRepository = defaultRepository()): e
     remove: new DeleteResumeController(new DeleteResumeUseCase(repository)),
   }));
   const handleError: ErrorRequestHandler = (error: unknown, request, response, _next) => {
-    if (error instanceof InvalidPaginationError || error instanceof InvalidResumeDataError) {
-      response.status(400).json(error instanceof InvalidResumeDataError ? { message: error.message, details: error.details } : { message: error.message });
+    if (error instanceof SyntaxError && "status" in error && (error as { status?: unknown }).status === 400) {
+      response.status(400).json({ code: "INVALID_JSON", message: "O corpo da requisição não é um JSON válido." });
+      return;
+    }
+    if (error instanceof InvalidResumeDataError) {
+      response.status(400).json({
+        code: "VALIDATION_ERROR",
+        message: error.message,
+        details: error.details,
+        errors: error.details,
+      });
+      return;
+    }
+    if (error instanceof InvalidPaginationError) {
+      response.status(400).json({ code: "INVALID_PAGINATION", message: error.message });
       return;
     }
     if (error instanceof ResumeNotFoundError) {
-      response.status(404).json({ message: error.message });
+      response.status(404).json({ code: "NOT_FOUND", message: error.message });
       return;
     }
     if (error instanceof DuplicateEmailError) {
-      response.status(409).json({ message: error.message, existingId: error.existingId });
+      response.status(409).json({ code: "DUPLICATE_EMAIL", message: error.message, existingId: error.existingId });
       return;
     }
     console.error(`Failed to handle ${request.method} ${request.path}.`);
-    response.status(500).json({ message: "Não foi possível processar a solicitação." });
+    response.status(500).json({ code: "INTERNAL_ERROR", message: "Não foi possível processar a solicitação. Tente novamente." });
   };
   app.use(handleError);
   return app;

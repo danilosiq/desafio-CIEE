@@ -29,15 +29,20 @@ const resumeInputSchema = {
 const messageSchema = {
   type: "object",
   required: ["message"],
-  properties: { message: { type: "string" } },
+  properties: {
+    code: { type: "string" },
+    message: { type: "string" },
+  },
 };
 
 const validationErrorSchema = {
   type: "object",
   required: ["message"],
   properties: {
+    code: { type: "string", example: "VALIDATION_ERROR" },
     message: { type: "string" },
     details: { type: "object", additionalProperties: { type: "string" } },
+    errors: { type: "object", additionalProperties: { type: "string" } },
   },
 };
 
@@ -45,6 +50,7 @@ const conflictErrorSchema = {
   type: "object",
   required: ["message", "existingId"],
   properties: {
+    code: { type: "string", example: "DUPLICATE_EMAIL" },
     message: { type: "string", example: "Este e-mail já possui um cadastro." },
     existingId: { type: "string", format: "uuid" },
   },

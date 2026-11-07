@@ -2,7 +2,8 @@ import { normalizeEmail } from "../domain/NormalizeEmail";
 
 export class InvalidResumeDataError extends Error {
   constructor(readonly details: Record<string, string>) {
-    super("Confira os campos obrigatórios.");
+    const fields = Object.values(details);
+    super(fields.length ? `Dados inválidos: ${fields.join(" ")}` : "Dados inválidos.");
     this.name = "InvalidResumeDataError";
   }
 }

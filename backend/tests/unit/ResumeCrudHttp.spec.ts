@@ -75,7 +75,7 @@ it("CA-04/CA-05: conflito de atualização retorna 409 com existingId e não sob
     update: jest.fn().mockRejectedValue(new DuplicateEmailError("22222222-2222-4222-8222-222222222222")),
   });
   const response = await request(app).put(`/resumes/${sample.id}`).send({ ...validBody, email: "outro@example.com" }).expect(409);
-  expect(response.body).toEqual({ message: "Este e-mail já possui um cadastro.", existingId: "22222222-2222-4222-8222-222222222222" });
+  expect(response.body).toMatchObject({ code: "DUPLICATE_EMAIL", message: "Este e-mail já possui um cadastro.", existingId: "22222222-2222-4222-8222-222222222222" });
 });
 
 it("CA-05: criação duplicada retorna contrato com existingId", async () => {
