@@ -1,0 +1,95 @@
+name: desafio-ciee
+
+x-sql-environment: &sql-environment
+  ACCEPT_EULA: "Y"
+  MSSQL_PID: Developer
+  MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Configure MSSQL_SA_PASSWORD no arquivo de ambiente Docker}
+
+services:
+  sqlserver:
+    container_name: sqlserver
+    image: mcr.microsoft.com/mssql/server:2025-latest
+    environment: *sql-environment
+    ports:
+      - "127.0.0.1:${SQLSERVER_PORT:-1433}:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "SQLCMDPASSWORD=\"$$MSSQL_SA_PASSWORD\" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -C -b -Q 'SELECT 1' -o /dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:0.40.15
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
+
+  ollama-setup:
+    image: ollama/ollama:0.40.15
+    entrypoint: ["/bin/sh", "-c"]
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    command:
+      - |
+        until ollama list >/dev/null 2>&1; do sleep 2; done
+        if ollama show qwen2.5vl:7b >/dev/null 2>&1; then
+          echo "Modelo qwen2.5vl:7b já disponível."
+        else
+          echo "Baixando qwen2.5vl:7b pela primeira vez..."
+          ollama pull qwen2.5vl:7b
+        fi
+    depends_on:
+      ollama:
+        condition: service_started
+    restart: on-failure
+
+  backend:
+    container_name: backend
+    image: desafio-ciee-backend:local
+    build:
+      context: ./backend
+      target: runtime
+    environment:
+      PORT: "3333"
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5vl:7b}
+      DATABASE_URL: "sqlserver://sqlserver:1433;database=${MSSQL_DATABASE:-ciee};user=sa;password=${MSSQL_SA_PASSWORD:?Configure MSSQL_SA_PASSWORD};encrypt=true;trustServerCertificate=true"
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-3333}:3333"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3333/resumes?limit=1').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    init: true
+    restart: unless-stopped
+  
+  frontend:
+    container_name: frontend
+    image: desafio-ciee-frontend:local
+    build:
+      context: ./frontend
+      target: runner
+    environment:
+      PORT: "3000"
+      BACKEND_URL: "http://backend:3333"
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-3000}:3000"
+    init: true
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+volumes:
+  sqlserver-data:
+  ollama-data:
