@@ -67,3 +67,17 @@ A separação entre o backend e a inferência permite evoluir a capacidade de pr
 O Ollama oferece configurações de paralelismo e fila, mas a quantidade de requisições simultâneas depende da memória disponível e do contexto de cada requisição. Aumentar a concorrência não garante maior desempenho e pode elevar o consumo de memória. A [documentação operacional do Ollama](https://docs.ollama.com/faq) serve de referência para esses ajustes.
 
 O processamento local não possui uma franquia de tokens de uma API hospedada. Há, porém, limite de contexto por requisição, consumo de recursos pelas imagens e tempo de execução. PDFs com várias páginas exigirão uma estratégia de processamento e consolidação que preserve os dados relevantes, a ser validada na implementação.
+
+### Persistência com Prisma e SQL Server
+
+A implementação seguiu a especificação da issue de modularização do Prisma: schema dividido por modelo, migrations versionadas e repositories nos módulos de currículos e processamento. Os contratos ficam na aplicação; o Prisma e seu adaptador ficam na infraestrutura, com instância compartilhada e encerramento explícito do client. A branch de trabalho informada pelo usuário foi criada a partir da `dev` local, no mesmo commit da origem disponível. Não houve commit, push ou merge nesta tarefa.
+
+O e-mail é normalizado antes da escrita e protegido por unicidade no SQL Server. A migration também exige sua forma canônica. Os dois estados do processamento são protegidos por constraint SQL porque o conector não oferece enums Prisma. O job independe da existência de um currículo salvo. Não foram criadas rotas HTTP ou funcionalidades de leitura de PDF.
+
+O Codex ajudou a derivar os cenários da spec, escrever os testes, implementar os repositories e conferir a execução real.
+
+### Catálogo de áreas de atuação
+
+Adicionada a tabela `AreaOfExpertise`, com `name` e `description` obrigatórios, identificador UUID e datas de criação e atualização. A migration é aditiva, preserva as tabelas anteriores e não cria um vínculo com os currículos. O módulo de áreas define contrato de criação e consulta por ID na aplicação e implementação Prisma na infraestrutura. O ERD foi atualizado em Mermaid, Excalidraw e PNG.
+
+Os testes de integração foram escritos antes da implementação: após criar a estrutura mínima do repository, o cenário de cadastro falhou por persistência ainda não implementada. Após implementar e aplicar as migrations em SQL Server isolado, `npm run check` passou (9 testes unitários, tipos, schema, geração e build), e `npm run test:integration` passou com 12 testes, incluindo criação, leitura e ausência de uma área. O E2E existente foi ampliado para cadastrar uma área em um processo Node e consultá-la em outro, usando o código compilado e SQL Server real; `npm run test:e2e` passou com 1 teste. Nenhuma rota HTTP foi adicionada ou alterada.
