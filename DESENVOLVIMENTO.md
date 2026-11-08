@@ -17,7 +17,7 @@ Os beneficios de realizar este passo inicial são de permitir padronizar o codig
 
 ### Oganização no processo - uso de IA para organização de etapas do desenvolvimento
 
-Com a junção do uso de IA no desenvolvimento e o plugin do Notion, foi criado uma base de divisão de tarefas e implementação, afim de esquematizar e organizar o passo a passo do desenvolvimento de uma visão mais geral. Usei o Notion simulando um Jira, no qual tinha as issues separas ja escrita em forma de spec, então a história seguia um padrão estrutural de
+Com a junção do uso de IA no desenvolvimento e o plugin do [Notion](https://app.notion.com/p/Desafio-CIEE-410532791c788022bf93feecb949c542?source=copy_link), foi criado uma base de divisão de tarefas e implementação, afim de esquematizar e organizar o passo a passo do desenvolvimento de uma visão mais geral. Usei o Notion simulando um Jira, no qual tinha as issues separas ja escrita em forma de spec, então a história seguia um padrão estrutural de
 
 1. Cenário atual: Falando o atual momento do desenvolvimento, abordando cenário do problema a ser resolvido
 2. Necessidade: apresentaçao do problema a ser resolvido de maneira direta.
