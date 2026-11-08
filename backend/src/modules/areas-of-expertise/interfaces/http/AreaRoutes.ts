@@ -37,7 +37,10 @@ export function createAreaRoutes(repository: () => PrismaAreaOfExpertiseReposito
       const deleted = validId(req.params.id) && await repository().delete(req.params.id);
       if (!deleted) { res.status(404).json({ message: "Área de atuação não encontrada." }); return; }
       res.status(204).end();
-    } catch (error) { next(error); }
+    } catch (error) {
+      if (error instanceof Error && "code" in error && error.code === "P2003") { res.status(409).json({ message: "Área vinculada a candidatos não pode ser excluída." }); return; }
+      next(error);
+    }
   });
   return router;
 }

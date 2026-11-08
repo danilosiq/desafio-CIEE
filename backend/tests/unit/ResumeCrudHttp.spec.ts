@@ -44,6 +44,7 @@ it("CA-01: cadastro manual válido persiste os cinco campos e não exige arquivo
     email: "pessoa@example.com",
     phone: "11900000000",
     areaOfExpertise: "TI",
+    areaOfExpertiseId: null,
     professionalSummary: "Resumo",
   });
 });
