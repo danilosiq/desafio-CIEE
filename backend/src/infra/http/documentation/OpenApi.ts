@@ -154,6 +154,11 @@ export const openApi = {
         },
       },
     },
+    "/pdf/render": { post: {
+      summary: "Renderiza todas as páginas de um PDF em imagens PNG, sem persistência.",
+      requestBody: { required: true, content: { "multipart/form-data": { schema: { type: "object", required: ["file"], properties: { file: { type: "string", format: "binary", description: "PDF de até 5 MiB (5.242.880 bytes)." } } } } } },
+      responses: { "200": { description: "Páginas em ordem, codificadas em base64.", content: { "application/json": { schema: { type: "object", required: ["pages"], properties: { pages: { type: "array", items: { type: "object", required: ["page", "width", "height", "mimeType", "imageBase64"], properties: { page: { type: "integer" }, width: { type: "integer" }, height: { type: "integer" }, mimeType: { type: "string", example: "image/png" }, imageBase64: { type: "string", format: "byte" } } } } } } } } }, "400": { description: "Arquivo inválido, ausente, corrompido ou protegido por senha." }, "413": { description: "Arquivo excede 5 MiB." }, "415": { description: "Tipo de requisição inválido." }, "422": { description: "Não foi possível renderizar todas as páginas." } }
+    } },
     "/ollama/status": { get: { summary: "Verifica o runtime Ollama e o modelo local configurado.", responses: { "200": { description: "Modelo disponível; inclui versão, digest e tamanho." }, "503": { description: "Runtime indisponível, modelo ausente ou configuração inválida." } } } },
     "/openapi.json": {
       get: {
