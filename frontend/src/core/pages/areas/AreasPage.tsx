@@ -18,6 +18,7 @@ import { LoadingState, ErrorState } from "@/core/components/Feedback";
 import { ResponsiveDialog } from "@/core/components/ResponsiveDialog";
 import { useAreas, useDeleteArea } from "@/core/hooks/UseAreas";
 import { getApiError } from "@/core/lib/ApiError";
+import { matchesSearch } from "@/core/lib/SearchText";
 import { AreaEditor } from "./components/AreaEditor";
 import type { AreaOfExpertise } from "@/core/types/AreaOfExpertise";
 type AreaDialog = {
@@ -36,11 +37,7 @@ export function AreasPage() {
   const [notice, setNotice] = useState("");
   const [dialog, setDialog] = useState<AreaDialog | null>(null);
   const rows = [...(query.data ?? [])]
-    .filter((area) =>
-      `${area.name} ${area.description}`
-        .toLocaleLowerCase("pt-BR")
-        .includes(search.toLocaleLowerCase("pt-BR")),
-    )
+    .filter((area) => matchesSearch(`${area.name} ${area.description}`, search))
     .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   function open(
     mode: AreaDialog["mode"],
