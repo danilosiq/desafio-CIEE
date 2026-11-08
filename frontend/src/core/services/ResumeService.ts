@@ -17,15 +17,23 @@ export async function listResumes({
   page = 1,
   limit = 30,
   search,
+  areaOfExpertiseId,
 }: {
   page?: number;
   limit?: number;
   search?: string;
+  areaOfExpertiseId?: string;
 } = {}): Promise<ResumeListPage> {
   const q = search?.trim();
+  const area = areaOfExpertiseId?.trim();
   const data = (
     await api.get<ResumeListResponse>("/resumes", {
-      params: { page, limit, ...(q ? { q } : {}) },
+      params: {
+        page,
+        limit,
+        ...(q ? { q } : {}),
+        ...(area ? { areaOfExpertiseId: area } : {}),
+      },
     })
   ).data;
   if (Array.isArray(data))

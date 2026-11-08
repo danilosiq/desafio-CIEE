@@ -21,6 +21,7 @@ export type ResumeListInput = {
     page: number;
     limit: number;
     search?: string;
+    areaOfExpertiseId?: string;
 };
 export type ResumeListData = {
     items: ResumeData[];

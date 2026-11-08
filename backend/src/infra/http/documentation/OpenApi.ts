@@ -83,6 +83,7 @@ export const openApi = {
           { name: "page", in: "query", required: false, schema: { type: "integer", minimum: 1, maximum: 2147483648, default: 1 }, example: 1 },
           { name: "limit", in: "query", required: false, schema: { type: "integer", minimum: 1, maximum: 30, default: 30 }, example: 30 },
           { name: "q", in: "query", required: false, schema: { type: "string" }, description: "Texto para filtrar candidatos (nome, e-mail, telefone ou área). A busca é aplicada no backend." },
+          { name: "areaOfExpertiseId", in: "query", required: false, schema: { type: "string", format: "uuid" }, description: "Filtra candidatos pelo ID da área de atuação." },
         ],
         responses: {
           "200": {

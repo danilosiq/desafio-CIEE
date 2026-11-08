@@ -22,16 +22,21 @@ export class PrismaResumeRepository implements ResumeRepository {
     async list(input: ResumeListInput): Promise<ResumeListData> {
         const { page, limit } = getPagination(input);
         const search = typeof input.search === 'string' && input.search.trim() ? input.search.trim() : undefined;
-        const where = search
-            ? {
-                OR: [
-                    { fullName: { contains: search } },
-                    { email: { contains: search } },
-                    { phone: { contains: search } },
-                    { areaOfExpertise: { contains: search } },
-                ],
-            }
-            : undefined;
+        const areaOfExpertiseId = typeof input.areaOfExpertiseId === 'string' && input.areaOfExpertiseId.trim() ? input.areaOfExpertiseId.trim() : undefined;
+        const conditions = [
+            ...(search
+                ? [{
+                    OR: [
+                        { fullName: { contains: search } },
+                        { email: { contains: search } },
+                        { phone: { contains: search } },
+                        { areaOfExpertise: { contains: search } },
+                    ],
+                }]
+                : []),
+            ...(areaOfExpertiseId ? [{ areaOfExpertiseId }] : []),
+        ];
+        const where = conditions.length ? { AND: conditions } : undefined;
         const [items, total] = await this.client.$transaction([
             this.client.resume.findMany({
                 where,

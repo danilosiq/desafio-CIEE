@@ -18,20 +18,32 @@ import {
 
 export const resumeKeys = {
   all: ["resumes"] as const,
-  list: (search = "") => ["resumes", "list", search.trim()] as const,
+  list: (search = "", areaOfExpertiseId = "") =>
+    ["resumes", "list", search.trim(), areaOfExpertiseId.trim()] as const,
   detail: (id: string) => ["resumes", id] as const,
 };
 
 export function useResumes(
-  options: { limit?: number; search?: string } | number = {},
+  options:
+    | { limit?: number; search?: string; areaOfExpertiseId?: string }
+    | number = {},
 ) {
-  const { limit = 30, search = "" } =
-    typeof options === "number" ? { limit: options } : options;
+  const {
+    limit = 30,
+    search = "",
+    areaOfExpertiseId = "",
+  } = typeof options === "number" ? { limit: options } : options;
   const q = search.trim();
+  const area = areaOfExpertiseId.trim();
   return useInfiniteQuery({
-    queryKey: resumeKeys.list(q),
+    queryKey: resumeKeys.list(q, area),
     queryFn: ({ pageParam }) =>
-      listResumes({ page: pageParam, limit, search: q || undefined }),
+      listResumes({
+        page: pageParam,
+        limit,
+        search: q || undefined,
+        areaOfExpertiseId: area || undefined,
+      }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) =>
       lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,

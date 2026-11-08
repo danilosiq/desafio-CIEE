@@ -62,18 +62,29 @@ function setup() {
   return userEvent.setup();
 }
 
-const waitDebounce = () => new Promise((r) => setTimeout(r, 350));
+const areas = [
+  { id: "design", name: "Design de produto", description: "Design" },
+  { id: "frontend", name: "Desenvolvimento frontend", description: "Dev" },
+];
 
 beforeEach(() => {
   jest.clearAllMocks();
   mockedApi.get.mockImplementation(
-    (url: string, config?: { params?: { q?: string } }) => {
+    (
+      url: string,
+      config?: { params?: { q?: string; areaOfExpertiseId?: string } },
+    ) => {
+      if (url === "/areas-of-expertise")
+        return Promise.resolve({ data: areas });
       if (url === "/resumes") {
         const q = (config?.params?.q ?? "").toLowerCase();
-        if (!q) return Promise.resolve(page([ana, lucas]));
-        if (q.includes("ningu")) return Promise.resolve(page([]));
-        if (q.includes("ana")) return Promise.resolve(page([ana]));
-        return Promise.resolve(page([ana, lucas]));
+        const areaId = config?.params?.areaOfExpertiseId ?? "";
+        let items = [ana, lucas];
+        if (areaId) items = items.filter((r) => r.areaOfExpertiseId === areaId);
+        if (q.includes("ningu")) items = [];
+        else if (q.includes("ana"))
+          items = items.filter((r) => r.fullName.includes("Ana"));
+        return Promise.resolve(page(items));
       }
       return Promise.reject(new Error(`unexpected GET ${url}`));
     },
@@ -126,28 +137,45 @@ it("apresenta estado vazio com recuperação da busca", async () => {
   ).toBeInTheDocument();
 });
 
-it("substitui o filtro de áreas por um menu de ordenação alfabética", async () => {
+it("oferece organização e filtro por área de atuação", async () => {
   const user = setup();
   await screen.findByRole("link", { name: "Ana Pereira" });
-  expect(screen.queryByLabelText("Filtrar por área")).not.toBeInTheDocument();
   await user.click(
-    screen.getByRole("button", { name: "Organizar candidatos" }),
+    screen.getByRole("button", { name: "Organizar e filtrar candidatos" }),
   );
-  expect(screen.getByLabelText("Organizar por")).toHaveValue("alphabetical");
+  expect(screen.getByLabelText("Organizar e filtrar por")).toHaveValue(
+    "alphabetical",
+  );
+  await screen.findByRole("option", { name: "Design de produto" });
+  await user.selectOptions(screen.getByLabelText("Área de atuação"), "design");
+  await waitFor(() =>
+    expect(mockedApi.get).toHaveBeenCalledWith(
+      "/resumes",
+      expect.objectContaining({
+        params: expect.objectContaining({ areaOfExpertiseId: "design" }),
+      }),
+    ),
+  );
   expect(
-    screen
-      .getAllByTestId("resume-item")
-      .map((item) => item.getAttribute("aria-label")),
-  ).toEqual(["Ana Pereira", "Lucas Oliveira"]);
+    await screen.findByRole("link", { name: "Ana Pereira" }),
+  ).toBeInTheDocument();
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("link", { name: "Lucas Oliveira" }),
+    ).not.toBeInTheDocument(),
+  );
 });
 
 it("organiza pela última alteração em ambas as direções", async () => {
   const user = setup();
   await screen.findByRole("link", { name: "Ana Pereira" });
   await user.click(
-    screen.getByRole("button", { name: "Organizar candidatos" }),
+    screen.getByRole("button", { name: "Organizar e filtrar candidatos" }),
   );
-  await user.selectOptions(screen.getByLabelText("Organizar por"), "newest");
+  await user.selectOptions(
+    screen.getByLabelText("Organizar e filtrar por"),
+    "newest",
+  );
   await waitFor(() =>
     expect(
       screen
@@ -155,7 +183,10 @@ it("organiza pela última alteração em ambas as direções", async () => {
         .map((item) => item.getAttribute("aria-label")),
     ).toEqual(["Lucas Oliveira", "Ana Pereira"]),
   );
-  await user.selectOptions(screen.getByLabelText("Organizar por"), "oldest");
+  await user.selectOptions(
+    screen.getByLabelText("Organizar e filtrar por"),
+    "oldest",
+  );
   await waitFor(() =>
     expect(
       screen
@@ -185,18 +216,29 @@ it.each(["list", "grid"] as const)(
 );
 
 it("trata falha no limite da API e permite repetir a consulta", async () => {
+  let resumeCalls = 0;
   mockedApi.get.mockReset();
-  mockedApi.get
-    .mockRejectedValueOnce(new Error("network"))
-    .mockImplementation((url: string, config?: { params?: { q?: string } }) => {
+  mockedApi.get.mockImplementation(
+    (
+      url: string,
+      config?: { params?: { q?: string; areaOfExpertiseId?: string } },
+    ) => {
+      if (url === "/areas-of-expertise")
+        return Promise.resolve({ data: areas });
       if (url === "/resumes") {
+        resumeCalls += 1;
+        if (resumeCalls === 1) return Promise.reject(new Error("network"));
         const q = (config?.params?.q ?? "").toLowerCase();
-        if (!q) return Promise.resolve(page([ana, lucas]));
-        if (q.includes("ana")) return Promise.resolve(page([ana]));
-        return Promise.resolve(page([ana, lucas]));
+        const areaId = config?.params?.areaOfExpertiseId ?? "";
+        let items = [ana, lucas];
+        if (areaId) items = items.filter((r) => r.areaOfExpertiseId === areaId);
+        if (q.includes("ana"))
+          items = items.filter((r) => r.fullName.includes("Ana"));
+        return Promise.resolve(page(items));
       }
       return Promise.reject(new Error(`unexpected GET ${url}`));
-    });
+    },
+  );
   const user = setup();
   expect(
     await screen.findByText("Não foi possível carregar os cadastros."),

@@ -24,11 +24,15 @@ import { ResumeSortMenu, type ResumeSort } from "./components/ResumeSortMenu";
 export function ResumesPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [areaOfExpertiseId, setAreaOfExpertiseId] = useState("");
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
     return () => clearTimeout(timer);
   }, [search]);
-  const query = useResumes({ search: debouncedSearch });
+  const query = useResumes({
+    search: debouncedSearch,
+    areaOfExpertiseId,
+  });
   const trigger = useRef<HTMLElement | null>(null);
   const sentinel = useRef<HTMLDivElement | null>(null);
   const [sort, setSort] = useState<ResumeSort>("alphabetical");
@@ -123,7 +127,12 @@ export function ResumesPage() {
               {total}
             </span>
           </Row>
-          <ResumeSortMenu value={sort} onChange={setSort} />
+          <ResumeSortMenu
+            value={sort}
+            onChange={setSort}
+            areaOfExpertiseId={areaOfExpertiseId}
+            onAreaChange={setAreaOfExpertiseId}
+          />
         </Row>
         <Row className="w-full gap-3 sm:w-auto">
           <div
@@ -177,16 +186,17 @@ export function ResumesPage() {
             Nenhum candidato encontrado
           </Title>
           <Text>
-            {search
+            {search || areaOfExpertiseId
               ? "Tente outra pesquisa ou remova os filtros."
               : "Adicione o primeiro candidato ao banco."}
           </Text>
-          {search ? (
+          {search || areaOfExpertiseId ? (
             <Button
               variant="outline"
               onClick={() => {
                 setSearch("");
                 setDebouncedSearch("");
+                setAreaOfExpertiseId("");
               }}
             >
               Limpar filtros
