@@ -17,7 +17,6 @@ import { UpdateResumeController } from "../modules/resumes/interfaces/http/contr
 import { DeleteResumeController } from "../modules/resumes/interfaces/http/controllers/DeleteResumeController";
 import { createResumeRoutes } from "../modules/resumes/interfaces/http/routes/ResumeRoutes";
 import { createAreaRoutes } from "../modules/areas-of-expertise/interfaces/http/AreaRoutes";
-import { checkOllama } from "../infra/ollama/OllamaAvailability";
 import { createPdfRoutes } from "../modules/resume-processing/interfaces/http/PdfRoutes";
 import { createScanRoutes } from "../modules/resume-processing/interfaces/http/ScanRoutes";
 import { openApi } from "../infra/http/documentation/OpenApi";
@@ -45,7 +44,6 @@ export function createApp(repository: ResumeRepository = defaultRepository()): e
     }
     next();
   });
-  app.get("/ollama/status", (_req, res) => { void checkOllama().then((status) => res.status(status.status === "ready" ? 200 : 503).json(status)); });
   app.get("/openapi.json", (_request, response) => { response.json(openApi); });
   app.get("/docs", (_request, response) => { response.redirect("/docs/"); });
   app.get("/docs/", swaggerUi.setup(openApi));

@@ -1,19 +1,20 @@
 import { Router } from "express";
-import { PdfError } from "../../application/providers/PdfRenderer";
-import { ExtractionError } from "../../application/providers/ResumeExtractionProvider";
-import { createScanPdf } from "../../infra/providers/CreateScanPdf";
-import { receivePdf } from "./ReceivePdf";
+import { PdfTextError } from "../../application/extraction/PdfTextError";
+import { createTextExtraction } from "../../infra/pdf/CreateTextExtraction";
+import { receiveScanPdf } from "./ReceivePdf";
 
 export function createScanRoutes(): Router {
   const router = Router();
-  router.post("/scan", receivePdf, (req, res, next) => {
-    void Promise.resolve().then(() => createScanPdf().execute(req.file!.buffer)).then((result) => res.json(result)).catch((error: unknown) => {
-      if (error instanceof PdfError) { res.status(error.code === "RENDER_FAILED" ? 422 : 400).json({ code: error.code, message: error.message }); return; }
-      if (error instanceof ExtractionError) {
-        const status = error.code === "TIMEOUT" ? 504 : error.code === "INVALID_RESPONSE" ? 502 : error.code === "INVALID_INPUT" ? 400 : 503;
-        res.status(status).json({ code: error.code, message: error.message }); return;
-      }
-      next(error);
+  router.post("/scan", receiveScanPdf, (req, res) => {
+    const started = Date.now();
+    void Promise.resolve().then(() => createTextExtraction().execute(req.file!.buffer)).then((result) => {
+      console.info(`PDF extraction status=${result.extraction.status} durationMs=${Date.now() - started}`);
+      res.json(result);
+    }).catch((reason: unknown) => {
+      const error = reason instanceof PdfTextError ? reason : new PdfTextError("EXTRACTION_FAILED", "Ocorreu uma falha na leitura. Você ainda pode cadastrar manualmente.");
+      const status = error.code === "EXTRACTION_BUSY" ? 503 : error.code === "EXTRACTION_TIMEOUT" ? 504 : error.code === "EXTRACTION_FAILED" ? 500 : 422;
+      console.info(`PDF extraction status=${error.code} durationMs=${Date.now() - started}`);
+      res.status(status).json({ error: { code: error.code, message: error.message } });
     });
   });
   return router;
