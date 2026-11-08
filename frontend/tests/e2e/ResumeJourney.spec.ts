@@ -1,7 +1,11 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { get } from "node:http";
 import { mkdir } from "node:fs/promises";
-import { SCAN_FIXTURE_NAMES } from "@/mocks/ScanFixtures";
+const SCAN_FIXTURE_NAMES = {
+  success: "curriculo-exemplo.pdf",
+  partial: "fixture-leitura-parcial.pdf",
+  error: "fixture-falha-leitura.pdf",
+} as const;
 import {
   chromium,
   type Browser,
@@ -30,7 +34,7 @@ function ready() {
 }
 beforeAll(async () => {
   if (!process.env.E2E_BASE_URL) {
-    server = spawn("corepack", ["yarn", "start", "--port", "3100"], {
+    server = spawn("npm", ["run", "start", "--", "--port", "3100"], {
       cwd: process.cwd(),
       detached: true,
       stdio: ["ignore", "pipe", "pipe"],
