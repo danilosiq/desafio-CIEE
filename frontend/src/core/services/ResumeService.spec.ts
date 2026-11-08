@@ -120,6 +120,7 @@ it("extrai sugestões de PDF real sem cadastrar candidato", async () => {
     name: "Camila Rocha",
     email: data.email,
     phone: "(11) 99999-1234",
+    professionalSummary: null,
   });
   const firstPage = await listResumes();
   for (let page = 1; page <= firstPage.totalPages; page++) {
@@ -138,6 +139,7 @@ it("retorna campos ausentes e rejeita PDF corrompido", async () => {
     name: null,
     email: "camila.rocha@example.com",
     phone: null,
+    professionalSummary: null,
   });
   await expect(
     scanResume({
