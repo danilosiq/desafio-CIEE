@@ -56,7 +56,12 @@ export function ResumesPage() {
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [query.hasNextPage, query.isFetchingNextPage, query.fetchNextPage, rows.length]);
+  }, [
+    query.hasNextPage,
+    query.isFetchingNextPage,
+    query.fetchNextPage,
+    rows.length,
+  ]);
   const filtered = rows
     .filter((row) =>
       `${row.fullName} ${row.email} ${row.phone} ${row.areaOfExpertise}`

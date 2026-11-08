@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { Column, Row } from "@/core/components/Primitives";
 import { AnimatedContent } from "@/core/components/AnimatedContent";
 import { useResumeForm } from "@/core/hooks/UseResumeForm";
+import { scanFeedback } from "@/core/lib/ScanFeedback";
 import { useIsMobile } from "@/core/hooks/UseIsMobile";
 import { PdfUpload } from "./PdfUpload";
 import { ResumeSubmitError } from "./ResumeSubmitError";
@@ -36,7 +37,7 @@ export function ResumeForm({
   const [review, setReview] = useState(false);
   const stepped = mobileSteps && mobile && showPdf && !initial;
   const phase = form.isScanning ? "processing" : review ? "review" : "upload";
-  const showFields = !stepped || phase === "review";
+  const showFields = !stepped || review;
   async function extract() {
     const success = await form.extract();
     if (success) setReview(true);
@@ -55,7 +56,12 @@ export function ResumeForm({
     <Column>
       <AnimatedContent contentKey={stepped ? phase : "form"}>
         {stepped && !showFields ? (
-          <Column className="min-h-96 gap-4 px-5 py-6">{upload}</Column>
+          <Column className="min-h-96 gap-4 px-5 py-6">
+            {upload}
+            <Button variant="outline" onClick={() => setReview(true)}>
+              Preencher manualmente
+            </Button>
+          </Column>
         ) : (
           <div
             className={
@@ -91,6 +97,27 @@ export function ResumeForm({
                     <ArrowLeft aria-hidden="true" />
                     Voltar ao arquivo
                   </Button>
+                )}
+                {form.isScanning ? (
+                  <div
+                    role="status"
+                    className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900"
+                  >
+                    Processando o arquivo. Você pode preencher os dados
+                    manualmente.
+                  </div>
+                ) : (
+                  form.scanResult && (
+                    <div
+                      role="status"
+                      className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900"
+                    >
+                      {scanFeedback(form.scanResult)}
+                    </div>
+                  )
+                )}
+                {stepped && form.fileError && (
+                  <ResumeSubmitError error={{ message: form.fileError }} />
                 )}
                 <ResumeFields form={form} />
                 <ResumeSubmitError error={form.submitError} />
@@ -135,7 +162,7 @@ export function ResumeForm({
                 </Row>
                 <Button
                   type="submit"
-                  disabled={form.isSaving || form.isScanning}
+                  disabled={form.isSaving}
                   className="w-full sm:w-auto"
                 >
                   {form.isSaving ? (

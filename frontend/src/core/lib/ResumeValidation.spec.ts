@@ -1,5 +1,6 @@
 import {
   EMPTY_RESUME,
+  formatPhone,
   MAX_PDF_BYTES,
   validatePdf,
   validateResume,
@@ -57,4 +58,12 @@ describe("Validação do PDF", () => {
       validatePdf(new File([], "curriculo.pdf", { type: "application/pdf" })),
     ).toBeTruthy();
   });
+});
+
+it("preserva o número internacional completo recebido na leitura", () => {
+  expect(formatPhone("+55 11 98888-0000")).toBe("+55 11 98888-0000");
+});
+
+it("aceita PDF quando o navegador não informa o MIME", () => {
+  expect(validatePdf(new File(["%PDF-1.4"], "curriculo.pdf"))).toBeNull();
 });

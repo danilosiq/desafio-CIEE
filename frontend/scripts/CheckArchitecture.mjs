@@ -31,5 +31,5 @@ if (failures.length) {
   process.exitCode = 1;
 } else
   console.info(
-    "Arquitetura conferida; política de Yarn validada na suíte Jest.",
+    "Arquitetura conferida; política de npm validada na suíte Jest.",
   );

@@ -6,30 +6,51 @@ import { ResumeProfile } from "./ResumeProfile";
 import { api } from "@/core/services/Api";
 import type { Resume } from "@/core/types/Resume";
 
-const resumeFixtures: Resume[] = [
-  {
-    id: "ana-pereira",
-    fullName: "Ana Pereira",
-    email: "ana.pereira@example.com",
-    phone: "(11) 98765-4321",
-    areaOfExpertise: "Design de produto",
-    areaOfExpertiseId: "design",
-    professionalSummary: "Designer com interesse em experiências digitais acessíveis.",
-    createdAt: "2026-11-04T12:00:00.000Z",
-    updatedAt: "2026-11-04T12:00:00.000Z",
-  },
-  {
-    id: "lucas-oliveira",
-    fullName: "Lucas Oliveira",
-    email: "lucas.oliveira@example.com",
-    phone: "(11) 97654-3210",
-    areaOfExpertise: "Desenvolvimento frontend",
-    areaOfExpertiseId: "frontend",
-    professionalSummary: "Estudante de tecnologia com experiência em React.",
-    createdAt: "2026-11-03T14:00:00.000Z",
-    updatedAt: "2026-11-03T14:00:00.000Z",
-  },
-];
+import { createResume, deleteResume } from "@/core/services/ResumeService";
+import { createArea, deleteArea } from "@/core/services/AreaService";
+import type { AreaOfExpertise } from "@/core/types/AreaOfExpertise";
+
+let resumeFixtures: Resume[];
+let area: AreaOfExpertise;
+const runId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+beforeAll(async () => {
+  if (
+    process.env.NEXT_PUBLIC_API_URL !== "http://127.0.0.1:3335" ||
+    process.env.FRONTEND_TEST_DATABASE !== "ciee_test"
+  ) {
+    throw new Error(
+      "Execute os testes com API isolada em 127.0.0.1:3335 e FRONTEND_TEST_DATABASE=ciee_test.",
+    );
+  }
+  area = await createArea({
+    data: { name: `Design perfil ${runId}`, description: "Área fictícia" },
+  });
+  const first = await createResume({
+    data: {
+      fullName: "Ana Pereira",
+      email: `ana-${runId}@example.com`,
+      phone: "(11) 98765-4321",
+      areaOfExpertise: "",
+      areaOfExpertiseId: area.id,
+      professionalSummary: "Resumo profissional fictício",
+    },
+  });
+  const second = await createResume({
+    data: {
+      fullName: "Lucas Oliveira",
+      email: `lucas-${runId}@example.com`,
+      phone: "",
+      areaOfExpertise: "",
+      professionalSummary: "",
+    },
+  });
+  resumeFixtures = [first, second];
+});
+afterAll(async () => {
+  for (const resume of resumeFixtures ?? [])
+    await deleteResume({ id: resume.id });
+  if (area) await deleteArea({ id: area.id });
+});
 function setup() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -48,7 +69,6 @@ function setup() {
   );
   return { user: userEvent.setup(), onSaved };
 }
-afterEach(() => jest.restoreAllMocks());
 beforeEach(() => {
   localStorage.clear();
 });
@@ -103,7 +123,7 @@ it("oferece editar o cadastro existente ao conflitar e-mail na edição", async 
 });
 it("exige uma área livre ao trocar uma referência do catálogo por Outros", async () => {
   const { user, onSaved } = setup();
-  await screen.findByRole("option", { name: "Design de produto" });
+  await screen.findByRole("option", { name: area.name });
   await waitFor(() =>
     expect(screen.getByLabelText("Área de atuação")).toBeEnabled(),
   );
@@ -116,16 +136,16 @@ it("exige uma área livre ao trocar uma referência do catálogo por Outros", as
   expect(onSaved).not.toHaveBeenCalled();
 });
 it("preserva a identificação da área vinculada quando o catálogo falha", async () => {
-  const failure = jest
-    .spyOn(api, "get")
-    .mockRejectedValueOnce(new Error("indisponível"));
-  setup();
-  await screen.findByText(
-    "Não foi possível listar as áreas. Você pode usar Outros.",
-  );
-  expect(
-    screen.getByRole("option", { name: "Design de produto" }),
-  ).toBeInTheDocument();
-  expect(screen.getByLabelText("Área de atuação")).toHaveValue("design");
-  failure.mockRestore();
+  const previousBaseUrl = api.defaults.baseURL;
+  api.defaults.baseURL = "http://127.0.0.1:1";
+  try {
+    setup();
+    await screen.findByText(
+      "Não foi possível listar as áreas. Você pode usar Outros.",
+    );
+    expect(screen.getByRole("option", { name: area.name })).toBeInTheDocument();
+    expect(screen.getByLabelText("Área de atuação")).toHaveValue(area.id);
+  } finally {
+    api.defaults.baseURL = previousBaseUrl;
+  }
 });

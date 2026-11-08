@@ -1,88 +1,128 @@
-import { spawn, type ChildProcess } from "node:child_process";
-import { get } from "node:http";
+import { makeTextPdf } from "../../../backend/tests/fixtures/MakeTextPdf";
 import { mkdir } from "node:fs/promises";
-import { SCAN_FIXTURE_NAMES } from "@/mocks/ScanFixtures";
+const SCAN_FIXTURE_NAMES = {
+  success: "curriculo-exemplo.pdf",
+  partial: "fixture-leitura-parcial.pdf",
+  error: "fixture-falha-leitura.pdf",
+} as const;
 import {
   chromium,
   type Browser,
   type BrowserContext,
   type Page,
 } from "playwright";
-const baseURL = process.env.E2E_BASE_URL ?? "http://127.0.0.1:3100";
-let server: ChildProcess | undefined;
+const baseURL = process.env.E2E_BASE_URL ?? "";
 let browser: Browser;
 let context: BrowserContext;
 let page: Page;
-let logs = "";
 let pageErrors: string[] = [];
-function ready() {
-  return new Promise<boolean>((resolve) => {
-    const request = get(baseURL, (response) => {
-      response.resume();
-      resolve(response.statusCode === 200);
-    });
-    request.on("error", () => resolve(false));
-    request.setTimeout(1000, () => {
-      request.destroy();
-      resolve(false);
-    });
+let expectedHttpErrors = new Set<number>();
+const apiURL = process.env.E2E_API_URL;
+const runId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+const designName = `Design de produto ${runId}`;
+let areaId = "";
+let anaId = "";
+let lucasId = "";
+let juliaId = "";
+let createdResumes: string[] = [];
+let createdAreas: string[] = [];
+let pendingResponses: Promise<void>[] = [];
+async function apiRequest(path: string, method = "GET", body?: object) {
+  const response = await fetch(`${apiURL}${path}`, {
+    method,
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
   });
+  if (!response.ok && !(method === "DELETE" && response.status === 404))
+    throw new Error(
+      `${method} ${path}: ${response.status} ${await response.text()}`,
+    );
+  return response.status === 204 || response.status === 404
+    ? null
+    : response.json();
 }
 beforeAll(async () => {
-  if (!process.env.E2E_BASE_URL) {
-    server = spawn("corepack", ["yarn", "start", "--port", "3100"], {
-      cwd: process.cwd(),
-      detached: true,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    server.stdout?.on("data", (data) => {
-      logs += data.toString();
-    });
-    server.stderr?.on("data", (data) => {
-      logs += data.toString();
-    });
-  }
-  let started = false;
-  for (let attempt = 0; attempt < 120; attempt++) {
-    if (await ready()) {
-      started = true;
-      break;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 250));
-  }
-  if (!started) throw new Error(`Servidor E2E indisponível: ${logs}`);
+  if (
+    baseURL !== "http://127.0.0.1:3103" ||
+    apiURL !== "http://127.0.0.1:3335" ||
+    process.env.E2E_TEST_DATABASE !== "ciee_test"
+  )
+    throw new Error("O E2E exige frontend e API isolados com banco ciee_test.");
+  const response = await fetch(baseURL);
+  if (!response.ok)
+    throw new Error(`Servidor E2E indisponível: HTTP ${response.status}`);
   browser = await chromium.launch({ headless: true });
   await mkdir("test-results", { recursive: true });
 }, 60000);
 beforeEach(async () => {
+  createdResumes = [];
+  createdAreas = [];
+  pendingResponses = [];
+  const area = await apiRequest("/areas-of-expertise", "POST", {
+    name: designName,
+    description: "Área fictícia de teste",
+  });
+  areaId = area.id;
+  createdAreas.push(areaId);
+  for (const [name, email] of [
+    ["Júlia Almeida", `julia.almeida-${runId}@example.com`],
+    ["Rafael Costa", `rafael.costa-${runId}@example.com`],
+    ["Beatriz Santos", `beatriz.santos-${runId}@example.com`],
+    ["Lucas Oliveira", `lucas.oliveira-${runId}@example.com`],
+    ["Ana Pereira", `ana.pereira-${runId}@example.com`],
+  ]) {
+    const resume = await apiRequest("/resumes", "POST", {
+      fullName: name,
+      email,
+      phone: "(11) 98765-4321",
+      areaOfExpertiseId: name === "Ana Pereira" ? areaId : null,
+      areaOfExpertise: "",
+      professionalSummary: "Resumo fictício",
+    });
+    createdResumes.push(resume.id);
+    if (name === "Ana Pereira") anaId = resume.id;
+    if (name === "Lucas Oliveira") lucasId = resume.id;
+    if (name === "Júlia Almeida") juliaId = resume.id;
+  }
   context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
   });
   page = await context.newPage();
+  expectedHttpErrors = new Set<number>();
+  page.on("response", (response) => {
+    if (response.status() >= 400 && !expectedHttpErrors.has(response.status()))
+      pageErrors.push(`HTTP ${response.status()} ${response.url()}`);
+    if (response.request().method() !== "POST" || !response.ok()) return;
+    const path = new URL(response.url()).pathname;
+    if (path !== "/resumes" && path !== "/areas-of-expertise") return;
+    pendingResponses.push(
+      response.json().then((created) => {
+        if (path === "/resumes") createdResumes.push(created.id);
+        else createdAreas.push(created.id);
+      }),
+    );
+  });
   pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
   page.on("console", (message) => {
-    if (message.type() === "error") pageErrors.push(message.text());
+    if (
+      message.type() === "error" &&
+      !message.text().startsWith("Failed to load resource:")
+    )
+      pageErrors.push(message.text());
   });
 });
 afterEach(async () => {
+  await Promise.all(pendingResponses);
   await context?.close();
+  for (const id of [...new Set(createdResumes)])
+    await apiRequest(`/resumes/${id}`, "DELETE");
+  for (const id of [...new Set(createdAreas)])
+    await apiRequest(`/areas-of-expertise/${id}`, "DELETE");
   expect(pageErrors).toEqual([]);
 });
 afterAll(async () => {
   await browser?.close();
-  if (server?.pid && server.exitCode === null) {
-    const closed = new Promise<void>((resolve) =>
-      server!.once("close", () => resolve()),
-    );
-    try {
-      process.kill(-server.pid, "SIGTERM");
-      await closed;
-    } catch {
-      server.stdout?.destroy();
-      server.stderr?.destroy();
-    }
-  }
 });
 async function openForm() {
   await page.goto(`${baseURL}/candidatos/novo`);
@@ -105,7 +145,7 @@ async function save() {
     .getByRole("button", { name: "Confirmar dados", exact: true })
     .click();
   await page.waitForURL(/\/candidatos\/[^/]+\?salvo=1$/);
-  await page.getByText("Cadastro salvo com sucesso na demonstração.").waitFor();
+  await page.getByText("Cadastro salvo com sucesso.").waitFor();
 }
 async function uploadPdf(
   scenario: keyof typeof SCAN_FIXTURE_NAMES = "success",
@@ -113,7 +153,18 @@ async function uploadPdf(
   await page.getByLabel("Selecionar currículo em PDF").setInputFiles({
     name: SCAN_FIXTURE_NAMES[scenario],
     mimeType: "application/pdf",
-    buffer: Buffer.from("%PDF-1.4\nFixture local de regressão"),
+    buffer:
+      scenario === "error"
+        ? Buffer.from("%PDF-1.4\ncorrompido")
+        : makeTextPdf(
+            scenario === "partial"
+              ? [`camila.rocha-${runId}@example.com`]
+              : [
+                  "Camila Rocha",
+                  `camila.rocha-${runId}@example.com`,
+                  "(11) 99999-1234",
+                ],
+          ),
   });
   await page.mouse.move(0, 0);
   await page.waitForFunction(() => {
@@ -131,17 +182,15 @@ async function sample(scenario: keyof typeof SCAN_FIXTURE_NAMES = "success") {
 }
 async function waitForRead() {
   await page.waitForFunction(
-    () =>
+    (expected) =>
       (document.querySelector('input[name="email"]') as HTMLInputElement | null)
-        ?.value === "camila.rocha@example.com",
+        ?.value === expected,
+    `camila.rocha-${runId}@example.com`,
   );
 }
 it("consulta candidatos e recupera a listagem após pesquisa vazia", async () => {
   await page.goto(baseURL);
   await page.getByRole("link", { name: "Ana Pereira", exact: true }).waitFor();
-  expect(
-    await page.getByText("Demonstração · dados fictícios").isVisible(),
-  ).toBe(true);
   await page.screenshot({
     path: "test-results/HomeDesktop.png",
     fullPage: true,
@@ -155,7 +204,7 @@ it("consulta candidatos e recupera a listagem após pesquisa vazia", async () =>
     .waitFor();
   expect(
     await page
-      .getByRole("link", { name: "ana.pereira@example.com" })
+      .getByRole("link", { name: `ana.pereira-${runId}@example.com` })
       .isVisible(),
   ).toBe(true);
 });
@@ -174,7 +223,9 @@ it("valida, salva manualmente e permite consultar e editar sem PDF", async () =>
   expect(await page.getByLabel("Telefone", { exact: true }).inputValue()).toBe(
     "(11) 99999-9999",
   );
-  await page.getByLabel("E-mail", { exact: false }).fill("marina@example.com");
+  await page
+    .getByLabel("E-mail", { exact: false })
+    .fill(`marina-${runId}@example.com`);
   await save();
   await page.reload();
   await page
@@ -195,20 +246,24 @@ it("valida, salva manualmente e permite consultar e editar sem PDF", async () =>
     .waitFor();
 });
 it("bloqueia duplicidade e abre cadastro existente sem atualizar silenciosamente", async () => {
+  expectedHttpErrors.add(409);
   await openForm();
-  await fillManual("Nome que não deve sobrescrever", "ANA.PEREIRA@EXAMPLE.COM");
+  await fillManual(
+    "Nome que não deve sobrescrever",
+    `ANA.PEREIRA-${runId}@EXAMPLE.COM`,
+  );
   await page
     .getByRole("button", { name: "Confirmar dados", exact: true })
     .click();
   await page.getByText("Este e-mail já possui um cadastro.").waitFor();
   await page.getByRole("link", { name: "Editar cadastro existente" }).click();
-  await page.waitForURL(/ana-pereira\/editar$/);
+  await page.waitForURL(`${baseURL}/candidatos/${anaId}/editar`);
   await page.getByLabel("Nome completo", { exact: false }).waitFor();
   expect(
     await page.getByLabel("Nome completo", { exact: false }).inputValue(),
   ).toBe("Ana Pereira");
 });
-it("preenche com PDF simulado e salva os dados revisados", async () => {
+it("preenche com PDF textual e salva os dados revisados", async () => {
   await openForm();
   await page
     .getByLabel("Nome completo", { exact: false })
@@ -219,7 +274,7 @@ it("preenche com PDF simulado e salva os dados revisados", async () => {
     await page.getByLabel("Nome completo", { exact: false }).inputValue(),
   ).toBe("Camila Revisada");
   expect(await page.getByLabel("E-mail", { exact: false }).inputValue()).toBe(
-    "camila.rocha@example.com",
+    `camila.rocha-${runId}@example.com`,
   );
   await page.getByLabel("Telefone", { exact: true }).fill("11988887777");
   await save();
@@ -231,6 +286,7 @@ it("preenche com PDF simulado e salva os dados revisados", async () => {
   ).toBe(true);
 });
 it("rejeita arquivo inválido e acima do limite; falha de leitura preserva o cadastro manual", async () => {
+  expectedHttpErrors.add(422);
   await openForm();
   const input = page.getByLabel("Selecionar currículo em PDF");
   await input.setInputFiles({
@@ -246,8 +302,8 @@ it("rejeita arquivo inválido e acima do limite; falha de leitura preserva o cad
   });
   await page.getByText("O arquivo deve ter no máximo 5 MB.").waitFor();
   await sample("error");
-  await page.getByText(/Não foi possível ler o PDF/).waitFor();
-  await fillManual("Cadastro após falha", "falha@example.com");
+  await page.getByText(/Não foi possível ler este PDF/).waitFor();
+  await fillManual("Cadastro após falha", `falha-${runId}@example.com`);
   await save();
 });
 it("permite completar campos ausentes e ignora o resultado de um PDF removido", async () => {
@@ -258,15 +314,13 @@ it("permite completar campos ausentes e ignora o resultado de um PDF removido", 
     await page.getByLabel("Nome completo", { exact: false }).inputValue(),
   ).toBe("");
   expect(await page.getByLabel("E-mail", { exact: false }).inputValue()).toBe(
-    "camila.rocha@example.com",
+    `camila.rocha-${runId}@example.com`,
   );
   await page.goto(`${baseURL}/candidatos/novo`);
   await page.getByLabel("Nome completo", { exact: false }).waitFor();
   await sample();
   await page.getByRole("button", { name: "Remover PDF" }).click();
-  await page
-    .getByText("Processando o arquivo na demonstração...")
-    .waitFor({ state: "hidden" });
+  await page.getByText("Processando o arquivo.").waitFor({ state: "hidden" });
   expect(await page.getByLabel("E-mail", { exact: false }).inputValue()).toBe(
     "",
   );
@@ -358,7 +412,7 @@ it("abre cadastro em dialog no desktop e restaura foco ao cancelar", async () =>
   ).toBe(0);
 });
 it("mostra perfil e edição inline com desfazer e validação de e-mail", async () => {
-  await page.goto(`${baseURL}/candidatos/ana-pereira`);
+  await page.goto(`${baseURL}/candidatos/${anaId}`);
   await page
     .getByRole("heading", { name: "Ana Pereira", exact: true, level: 1 })
     .waitFor();
@@ -395,7 +449,7 @@ it("mostra perfil e edição inline com desfazer e validação de e-mail", async
   await page.getByText("Informe um e-mail válido.").waitFor();
   await page
     .getByLabel("E-mail", { exact: true })
-    .fill("ana.revisada@example.com");
+    .fill(`ana.revisada-${runId}@example.com`);
   await page.getByLabel("Telefone", { exact: true }).fill("11912345678");
   expect(await page.getByLabel("Telefone", { exact: true }).inputValue()).toBe(
     "(11) 91234-5678",
@@ -407,10 +461,14 @@ it("mostra perfil e edição inline com desfazer e validação de e-mail", async
   await page.getByRole("button", { name: "Concluir", exact: true }).click();
   await page.waitForURL(/\?salvo=1$/);
   await page
-    .getByRole("link", { name: "ana.revisada@example.com", exact: true })
+    .getByRole("link", {
+      name: `ana.revisada-${runId}@example.com`,
+      exact: true,
+    })
     .waitFor();
 });
 it("transforma dialogs em bottom sheets no celular, cancela e confirma exclusão", async () => {
+  expectedHttpErrors.add(404);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(baseURL);
   await page.getByRole("link", { name: "Ana Pereira", exact: true }).waitFor();
@@ -478,7 +536,7 @@ it("cadastra manualmente no bottom sheet móvel com validação e ações roláv
     .getByRole("button", { name: "Confirmar dados", exact: true })
     .click();
   await page.getByText("Informe o nome completo.").waitFor();
-  await fillManual("Cadastro Mobile", "mobile@example.com");
+  await fillManual("Cadastro Mobile", `mobile-${runId}@example.com`);
   await page.getByLabel("Telefone", { exact: true }).fill("21987654321");
   await page
     .getByRole("button", { name: "Confirmar dados", exact: true })
@@ -599,8 +657,10 @@ it.each(["lista", "cards"])(
         .getByRole("link", { name: "Ana Pereira", exact: true })
         .evaluate((element) => getComputedStyle(element).cursor),
     ).toBe("pointer");
-    await page.getByText("ana.pereira@example.com", { exact: true }).click();
-    await page.waitForURL(/\/candidatos\/ana-pereira$/);
+    await page
+      .getByText(`ana.pereira-${runId}@example.com`, { exact: true })
+      .click();
+    await page.waitForURL(`${baseURL}/candidatos/${anaId}`);
     await page
       .getByRole("heading", { name: "Ana Pereira", exact: true })
       .waitFor();
@@ -628,8 +688,10 @@ it("mantém menu responsivo e navegação pelo card no celular", async () => {
   await page.screenshot({ path: "test-results/SortMenuMobile.png" });
   await page.keyboard.press("Escape");
   await menu.waitFor({ state: "hidden" });
-  await page.getByText("julia.almeida@example.com", { exact: true }).click();
-  await page.waitForURL(/\/candidatos\/julia-almeida$/);
+  await page
+    .getByText(`julia.almeida-${runId}@example.com`, { exact: true })
+    .click();
+  await page.waitForURL(`${baseURL}/candidatos/${juliaId}`);
   await page
     .getByRole("heading", { name: "Júlia Almeida", exact: true })
     .waitFor();
@@ -832,7 +894,7 @@ it("organiza a criação em duas colunas no desktop com arquivo removível e cam
   expect(
     await page.getByRole("button", { name: "Processar dados" }).count(),
   ).toBe(0);
-  await fillManual("Rascunho", "rascunho@example.com");
+  await fillManual("Rascunho", `rascunho-${runId}@example.com`);
   await page.getByRole("button", { name: "Limpar dados" }).click();
   expect(
     await page.getByLabel("Nome completo", { exact: false }).inputValue(),
@@ -847,12 +909,12 @@ it("organiza a criação em duas colunas no desktop com arquivo removível e cam
   ).toBe("Nome revisado no desktop");
   await page
     .getByLabel("Área de atuação", { exact: true })
-    .selectOption({ label: "Design de produto" });
+    .selectOption({ label: designName });
   expect(await page.getByLabel("Informe a área de atuação").count()).toBe(0);
   await chooseOtherArea("Pesquisa educacional");
   await page
     .getByLabel("E-mail", { exact: false })
-    .fill("desktop-revisado@example.com");
+    .fill(`desktop-revisado-${runId}@example.com`);
   await save();
   await page
     .getByRole("heading", { name: "Nome revisado no desktop", exact: true })
@@ -916,7 +978,7 @@ it("avança no PDF móvel de arquivo a processamento e revisão sem salvar autom
   ).toBe("Camila revisada no celular");
   await page
     .getByLabel("E-mail", { exact: false })
-    .fill("mobile-revisado@example.com");
+    .fill(`mobile-revisado-${runId}@example.com`);
   await page
     .getByLabel("Resumo profissional")
     .fill("Trajetória e objetivos revisados no celular.");
@@ -944,20 +1006,21 @@ it("avança no PDF móvel de arquivo a processamento e revisão sem salvar autom
     .waitFor();
 });
 it("permite continuar manualmente após erro no PDF móvel e limpar a revisão", async () => {
+  expectedHttpErrors.add(422);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(baseURL);
   await page
     .getByRole("button", { name: "Adicionar por PDF", exact: true })
     .click();
   await sample("error");
-  await page.getByText(/Não foi possível ler o PDF/).waitFor();
+  await page.getByText(/Não foi possível ler este PDF/).waitFor();
   await page.getByRole("button", { name: "Fechar janela" }).click();
   await page
     .getByRole("dialog", { name: "Adicionar candidato por PDF", exact: true })
     .waitFor({ state: "hidden" });
   await page.getByRole("button", { name: "Adicionar", exact: true }).click();
   await page.getByLabel("Nome completo", { exact: false }).waitFor();
-  await fillManual("Rascunho móvel", "rascunho-movel@example.com");
+  await fillManual("Rascunho móvel", `rascunho-movel-${runId}@example.com`);
   await page.getByRole("button", { name: "Limpar dados" }).click();
   expect(
     await page.getByLabel("Nome completo", { exact: false }).inputValue(),
@@ -969,7 +1032,10 @@ it("permite continuar manualmente após erro no PDF móvel e limpar a revisão",
     .getByRole("button", { name: "Confirmar dados", exact: true })
     .click();
   await page.getByText("Informe o nome completo.").waitFor();
-  await fillManual("Cadastro após erro móvel", "erro-movel@example.com");
+  await fillManual(
+    "Cadastro após erro móvel",
+    `erro-movel-${runId}@example.com`,
+  );
   await save();
   await page
     .getByRole("heading", { name: "Cadastro após erro móvel", exact: true })
@@ -1009,7 +1075,7 @@ it("mantém a barra de ações móvel opaca até o fim da área de rolagem", asy
     .getByRole("button", { name: "Confirmar dados", exact: true })
     .click();
   await page.getByText("Informe o nome completo.").waitFor();
-  await fillManual("Cadastro com ações fixas", "acoes@example.com");
+  await fillManual("Cadastro com ações fixas", `acoes-${runId}@example.com`);
   await save();
   await page.getByText("(11) 99999-9999", { exact: true }).waitFor();
 });
@@ -1045,7 +1111,7 @@ it.each([1440, 390])(
       .getByRole("heading", { name: "Áreas de atuação", level: 1, exact: true })
       .waitFor();
     await page
-      .getByRole("button", { name: "Consultar área Design de produto" })
+      .getByRole("button", { name: `Consultar área ${designName}` })
       .waitFor();
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
@@ -1063,7 +1129,7 @@ it.each([1440, 390])(
       .click();
     await page.waitForURL(/\/areas-de-atuacao$/);
     await page
-      .getByRole("button", { name: "Consultar área Design de produto" })
+      .getByRole("button", { name: `Consultar área ${designName}` })
       .waitFor();
   },
 );
@@ -1079,6 +1145,7 @@ async function saveArea(name: string, description: string) {
     .waitFor();
 }
 it("gerencia catálogo, atualiza vínculos e bloqueia exclusão até desvincular o candidato", async () => {
+  expectedHttpErrors.add(409);
   await page.goto(`${baseURL}/areas-de-atuacao`);
   await page
     .getByRole("button", { name: "Cadastrar área", exact: true })
@@ -1109,7 +1176,7 @@ it("gerencia catálogo, atualiza vínculos e bloqueia exclusão até desvincular
     .getByRole("link", { name: "Voltar aos candidatos", exact: true })
     .click();
   await page.getByRole("button", { name: "Adicionar", exact: true }).click();
-  await fillManual("Candidato com categoria", "categoria@example.com");
+  await fillManual("Candidato com categoria", `categoria-${runId}@example.com`);
   await page
     .getByLabel("Área de atuação", { exact: true })
     .selectOption({ label: "Educação inclusiva" });
@@ -1137,7 +1204,9 @@ it("gerencia catálogo, atualiza vínculos e bloqueia exclusão até desvincular
   await page
     .getByRole("button", { name: "Confirmar exclusão", exact: true })
     .click();
-  await page.getByText(/Esta área possui candidatos vinculados/).waitFor();
+  await page
+    .getByText(/Área vinculada a candidatos não pode ser excluída/)
+    .waitFor();
   await page.getByRole("button", { name: "Cancelar", exact: true }).click();
   await page.getByRole("dialog").waitFor({ state: "hidden" });
   await page.goto(candidateURL);
@@ -1206,7 +1275,7 @@ it("gerencia catálogo, atualiza vínculos e bloqueia exclusão até desvincular
 });
 it("valida Outros, preserva texto na edição e não cria categoria automaticamente", async () => {
   await openForm();
-  await fillManual("Candidato Outros", "candidato-outros@example.com");
+  await fillManual("Candidato Outros", `candidato-outros-${runId}@example.com`);
   await chooseOtherArea("   ");
   await page
     .getByRole("button", { name: "Confirmar dados", exact: true })
@@ -1230,13 +1299,13 @@ it("valida Outros, preserva texto na edição e não cria categoria automaticame
   ).toBe("Projetos comunitários");
   await page
     .getByLabel("Área de atuação", { exact: true })
-    .selectOption({ label: "Design de produto" });
+    .selectOption({ label: designName });
   expect(
     await page.getByLabel("Informe a área de atuação", { exact: true }).count(),
   ).toBe(0);
   await page.getByRole("button", { name: "Concluir", exact: true }).click();
   await page.waitForURL(/\?salvo=1$/);
-  await page.getByText("Design de produto", { exact: true }).waitFor();
+  await page.getByText(designName, { exact: true }).waitFor();
   await page.goto(`${baseURL}/areas-de-atuacao`);
   await page
     .getByLabel("Buscar áreas de atuação")
@@ -1269,11 +1338,12 @@ it.each([
 ])(
   "preserva a edição e oferece o cadastro existente em conflito no %s",
   async (_device, width, height) => {
+    expectedHttpErrors.add(409);
     await page.setViewportSize({
       width: Number(width),
       height: Number(height),
     });
-    await page.goto(`${baseURL}/candidatos/ana-pereira/editar`);
+    await page.goto(`${baseURL}/candidatos/${anaId}/editar`);
     const area = page.getByLabel("Área de atuação", { exact: true });
     await area.selectOption("__other");
     const custom = page.getByLabel("Informe a área de atuação", {
@@ -1283,12 +1353,12 @@ it.each([
     await page.getByRole("button", { name: "Concluir", exact: true }).click();
     await page.getByText("Informe a área de atuação.").waitFor();
     await custom.fill("Educação comunitária");
-    await area.selectOption("design");
+    await area.selectOption(areaId);
     await area.selectOption("__other");
     expect(await custom.inputValue()).toBe("Educação comunitária");
     await page
       .getByLabel("E-mail", { exact: true })
-      .fill("lucas.oliveira@example.com");
+      .fill(`lucas.oliveira-${runId}@example.com`);
     await page.getByRole("button", { name: "Concluir", exact: true }).click();
     const existing = page.getByRole("link", {
       name: "Editar cadastro existente",
@@ -1296,10 +1366,10 @@ it.each([
     });
     await existing.waitFor();
     expect(await existing.getAttribute("href")).toBe(
-      "/candidatos/lucas-oliveira/editar",
+      `/candidatos/${lucasId}/editar`,
     );
     expect(await custom.inputValue()).toBe("Educação comunitária");
-    expect(page.url()).toContain("/candidatos/ana-pereira/editar");
+    expect(page.url()).toContain(`/candidatos/${anaId}/editar`);
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(Number(width));
@@ -1308,14 +1378,17 @@ it.each([
       fullPage: true,
     });
     await existing.click();
-    await page.waitForURL(/\/candidatos\/lucas-oliveira\/editar$/);
+    await page.waitForURL(`${baseURL}/candidatos/${lucasId}/editar`);
     expect(
       await page.getByLabel("Nome completo", { exact: true }).inputValue(),
     ).toBe("Lucas Oliveira");
-    await page.goto(`${baseURL}/candidatos/ana-pereira`);
+    await page.goto(`${baseURL}/candidatos/${anaId}`);
     await page
-      .getByRole("link", { name: "ana.pereira@example.com", exact: true })
+      .getByRole("link", {
+        name: `ana.pereira-${runId}@example.com`,
+        exact: true,
+      })
       .waitFor();
-    await page.getByText("Design de produto", { exact: true }).waitFor();
+    await page.getByText(designName, { exact: true }).waitFor();
   },
 );
