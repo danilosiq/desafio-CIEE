@@ -225,3 +225,9 @@ O prompt `ExtractResumeV1` orienta o modelo local `qwen2.5vl:7b` a sugerir somen
 ### Recebimento e renderização de PDF
 
 O endpoint `/pdf/render` recebe um PDF multipart de até 5 MiB, valida seu conteúdo e renderiza todas as páginas em ordem com PDF.js e `@napi-rs/canvas`. Arquivo e imagens permanecem em memória, sem arquivos temporários nem persistência. A resolução é configurada por `PDF_RENDER_SCALE`. A resposta reúne as páginas em memória, portanto PDFs extensos podem aumentar o uso de recursos; falhas de renderização são reportadas sem retornar páginas parciais.
+
+### Orquestração da leitura de PDF
+
+`POST /scan` recebe um PDF de até 5 MiB, renderiza as páginas em ordem e envia cada imagem ao provider Ollama, sem persistir candidatos ou arquivos. Nome e e-mail são comparados sem diferenças de caixa e espaços; telefones, pelos dígitos. Valores incompatíveis resultam em campo `null` e nome na lista `conflicts`; os demais são sugestões sujeitas a revisão. A gravação e a regra de e-mail duplicado continuam no CRUD.
+
+Com PDF fictício de duas páginas, os testes comprovaram o tratamento de arquivo inválido, limite de tamanho e runtime de inferência indisponível. No banco de teste isolado, a falha de inferência não criou candidato; o cadastro manual posterior funcionou e o e-mail duplicado retornou conflito sem alteração automática. Os testes também verificaram a consolidação de sugestões fictícias, inclusive campos ausentes e conflitantes. A extração visual com o modelo real e o fluxo completo no navegador ainda não foram comprovados: no Mac de 8 GB, o carregamento do modelo demorou e foi interrompido por pressão de memória. A integração do navegador permanece em card próprio da Sprint 1.

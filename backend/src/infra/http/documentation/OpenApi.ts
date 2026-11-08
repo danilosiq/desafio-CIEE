@@ -154,6 +154,15 @@ export const openApi = {
         },
       },
     },
+    "/scan": { post: {
+      summary: "Extrai sugestões de nome, e-mail e telefone de um PDF sem persistir candidatos.",
+      description: "Processa todas as páginas em ordem. Campos conflitantes entre páginas retornam null e são listados em conflicts; sugestões exigem revisão. A leitura não cria nem atualiza registros.",
+      requestBody: { required: true, content: { "multipart/form-data": { schema: { type: "object", required: ["file"], properties: { file: { type: "string", format: "binary", description: "PDF até 5 MiB." } } } } } },
+      responses: {
+        "200": { description: "Sugestões para revisão e campos conflitantes.", content: { "application/json": { schema: { type: "object", required: ["fullName", "email", "phone", "conflicts", "requiresReview", "model", "promptVersion"], properties: { fullName: { type: "string", nullable: true }, email: { type: "string", nullable: true }, phone: { type: "string", nullable: true }, conflicts: { type: "array", items: { type: "string", enum: ["fullName", "email", "phone"] } }, requiresReview: { type: "boolean", enum: [true] }, model: { type: "string" }, promptVersion: { type: "string" } } } } } },
+        "400": { description: "Arquivo ausente, inválido, corrompido ou protegido por senha." }, "413": { description: "PDF acima de 5 MiB." }, "415": { description: "A requisição deve ser multipart/form-data." }, "422": { description: "Falha de renderização." }, "502": { description: "Resposta inválida do modelo." }, "503": { description: "Inferência indisponível ou ocupada." }, "504": { description: "Tempo limite de inferência excedido." }
+      }
+    } },
     "/pdf/render": { post: {
       summary: "Renderiza todas as páginas de um PDF em imagens PNG, sem persistência.",
       requestBody: { required: true, content: { "multipart/form-data": { schema: { type: "object", required: ["file"], properties: { file: { type: "string", format: "binary", description: "PDF de até 5 MiB (5.242.880 bytes)." } } } } } },
