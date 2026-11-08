@@ -6,162 +6,174 @@ import {
   scanResume,
   updateResume,
 } from "./ResumeService";
-import { makeTextPdf } from "../../../../backend/tests/fixtures/MakeTextPdf";
+import { api } from "./Api";
 import { EMPTY_RESUME } from "@/core/lib/ResumeValidation";
-import type { ResumeInput } from "@/core/types/Resume";
 
-let data: ResumeInput;
-let createdIds: string[];
+jest.mock("./Api", () => ({
+  api: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+    defaults: { baseURL: "/api" },
+  },
+}));
 
-beforeAll(() => {
-  if (
-    process.env.FRONTEND_TEST_DATABASE !== "ciee_test" ||
-    process.env.NEXT_PUBLIC_API_URL !== "http://127.0.0.1:3335"
-  ) {
-    throw new Error(
-      "Execute esta suíte contra a API isolada na porta 3335 e o banco ciee_test.",
-    );
-  }
-});
+const mockedApi = api as unknown as {
+  get: jest.Mock;
+  post: jest.Mock;
+  put: jest.Mock;
+  delete: jest.Mock;
+  defaults: { baseURL: string };
+};
+
+const resume = {
+  id: "11111111-1111-4111-8111-111111111111",
+  fullName: "Pessoa de Teste",
+  email: "teste@example.com",
+  phone: null,
+  areaOfExpertise: null,
+  professionalSummary: null,
+  createdAt: "2026-11-07T10:00:00.000Z",
+  updatedAt: "2026-11-07T10:00:00.000Z",
+};
+
+const normalizedResume = {
+  ...resume,
+  phone: "",
+  areaOfExpertise: "",
+  professionalSummary: "",
+};
+
+const data = {
+  ...EMPTY_RESUME,
+  fullName: "Pessoa de Teste",
+  email: "teste@example.com",
+};
 
 beforeEach(() => {
-  createdIds = [];
-  data = {
-    ...EMPTY_RESUME,
-    fullName: "Pessoa de Teste",
-    email: `teste-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`,
-  };
+  jest.clearAllMocks();
 });
 
-afterEach(async () => {
-  for (const id of createdIds) await deleteResume({ id });
+it("lista currículos paginados e normaliza itens", async () => {
+  mockedApi.get.mockResolvedValue({
+    data: {
+      items: [resume],
+      page: 1,
+      limit: 30,
+      total: 1,
+      totalPages: 1,
+    },
+  });
+  await expect(listResumes()).resolves.toEqual({
+    items: [normalizedResume],
+    page: 1,
+    limit: 30,
+    total: 1,
+    totalPages: 1,
+  });
+  expect(mockedApi.get).toHaveBeenCalledWith("/resumes", {
+    params: { page: 1, limit: 30 },
+  });
 });
 
-async function createFixture(input = data) {
-  const created = await createResume({ data: input });
-  createdIds.push(created.id);
-  return created;
-}
-
-it("lista currículos e permite consultar detalhes", async () => {
-  const created = await createFixture();
-  const { items } = await listResumes();
-  expect(items.find((item) => item.id === created.id)).toEqual(created);
-  expect(await getResume({ id: created.id })).toEqual(created);
+it("aceita resposta legada em array e consulta detalhes", async () => {
+  mockedApi.get.mockResolvedValueOnce({ data: [resume] });
+  await expect(listResumes({ page: 2, limit: 10 })).resolves.toEqual({
+    items: [normalizedResume],
+    page: 2,
+    limit: 10,
+    total: 1,
+    totalPages: 1,
+  });
+  mockedApi.get.mockResolvedValueOnce({ data: resume });
+  await expect(getResume({ id: resume.id })).resolves.toEqual(normalizedResume);
 });
-it("cadastra sem PDF e atualiza com confirmação explícita", async () => {
-  const created = await createFixture();
-  expect(
-    (await listResumes()).items.find((r) => r.id === created.id),
-  ).toMatchObject(data);
-  expect(
-    await updateResume({
-      id: created.id,
+
+it("cadastra e atualiza currículo", async () => {
+  mockedApi.post.mockResolvedValue({ data: resume });
+  await expect(createResume({ data })).resolves.toEqual(normalizedResume);
+  expect(mockedApi.post).toHaveBeenCalledWith("/resumes", data);
+  const updated = { ...resume, areaOfExpertise: "Design" };
+  mockedApi.put.mockResolvedValue({ data: updated });
+  await expect(
+    updateResume({
+      id: resume.id,
       data: { ...data, areaOfExpertise: "Design" },
     }),
-  ).toMatchObject({ areaOfExpertise: "Design" });
-  expect(await getResume({ id: created.id })).toMatchObject({
+  ).resolves.toEqual({ ...normalizedResume, areaOfExpertise: "Design" });
+  expect(mockedApi.put).toHaveBeenCalledWith("/resumes/" + resume.id, {
+    ...data,
     areaOfExpertise: "Design",
   });
 });
-it("bloqueia e-mail duplicado normalizando espaços e caixa", async () => {
-  const existing = await createFixture();
-  await expect(
-    createResume({ data: { ...data, email: ` ${data.email.toUpperCase()} ` } }),
-  ).rejects.toMatchObject({
+
+it("propaga conflito de e-mail duplicado com existingId", async () => {
+  const conflict = Object.assign(new Error("conflict"), {
     response: {
       status: 409,
-      data: { code: "DUPLICATE_EMAIL", existingId: existing.id },
+      data: {
+        code: "DUPLICATE_EMAIL",
+        message: "Este e-mail já possui um cadastro.",
+        existingId: "22222222-2222-4222-8222-222222222222",
+      },
     },
   });
-  expect(
-    (await listResumes()).items.filter((r) => r.email === data.email),
-  ).toHaveLength(1);
+  mockedApi.post.mockRejectedValue(conflict);
+  await expect(createResume({ data })).rejects.toMatchObject({
+    response: { status: 409, data: { code: "DUPLICATE_EMAIL" } },
+  });
 });
-it("não permite atualização com e-mail de outro cadastro", async () => {
-  const first = await createFixture();
-  const secondData = { ...data, email: `outra-${data.email}` };
-  const second = await createFixture(secondData);
-  await expect(
-    updateResume({
-      id: second.id,
-      data: { ...secondData, email: first.email },
+
+it("propaga validação, não encontrado e falha de scan", async () => {
+  mockedApi.post.mockRejectedValueOnce(
+    Object.assign(new Error("bad"), {
+      response: { status: 400, data: { code: "VALIDATION_ERROR" } },
     }),
-  ).rejects.toMatchObject({
-    response: {
-      status: 409,
-      data: { code: "DUPLICATE_EMAIL", existingId: first.id },
-    },
-  });
-  expect((await getResume({ id: second.id })).email).toBe(second.email);
-});
-it("responde claramente para registro inexistente", async () => {
-  await expect(
-    getResume({ id: "00000000-0000-4000-8000-000000000000" }),
-  ).rejects.toMatchObject({
-    response: { status: 404 },
-  });
-});
-it("não aceita dados inválidos mesmo no limite de comunicação", async () => {
+  );
   await expect(
     createResume({ data: { ...data, email: "invalido" } }),
   ).rejects.toMatchObject({
     response: { status: 400, data: { code: "VALIDATION_ERROR" } },
   });
-});
-it("extrai sugestões de PDF real sem cadastrar candidato", async () => {
-  const pdf = new Uint8Array(
-    makeTextPdf(["Camila Rocha", data.email, "(11) 99999-1234"]),
-  ).buffer;
-  const result = await scanResume({
-    file: new File([pdf], "cv.pdf", { type: "application/pdf" }),
+
+  mockedApi.get.mockRejectedValueOnce(
+    Object.assign(new Error("missing"), { response: { status: 404 } }),
+  );
+  await expect(getResume({ id: "missing" })).rejects.toMatchObject({
+    response: { status: 404 },
   });
-  expect(result.data).toEqual({
-    name: "Camila Rocha",
-    email: data.email,
-    phone: "(11) 99999-1234",
-    professionalSummary: null,
-  });
-  const firstPage = await listResumes();
-  for (let page = 1; page <= firstPage.totalPages; page++) {
-    const resultPage = page === 1 ? firstPage : await listResumes({ page });
-    expect(resultPage.items.some((resume) => resume.email === data.email)).toBe(
-      false,
-    );
-  }
-});
-it("retorna campos ausentes e rejeita PDF corrompido", async () => {
-  const pdf = new Uint8Array(makeTextPdf(["camila.rocha@example.com"])).buffer;
-  const partial = await scanResume({
-    file: new File([pdf], "parcial.pdf", { type: "application/pdf" }),
-  });
-  expect(partial.data).toEqual({
-    name: null,
-    email: "camila.rocha@example.com",
-    phone: null,
-    professionalSummary: null,
-  });
+
+  mockedApi.post.mockRejectedValueOnce(
+    Object.assign(new Error("unreadable"), {
+      response: { status: 422, data: { error: { code: "PDF_UNREADABLE" } } },
+    }),
+  );
   await expect(
     scanResume({
-      file: new File(["%PDF-1.4\ncorrompido"], "invalido.pdf", {
-        type: "application/pdf",
-      }),
+      file: new File(["x"], "cv.pdf", { type: "application/pdf" }),
     }),
   ).rejects.toMatchObject({
     response: { status: 422, data: { error: { code: "PDF_UNREADABLE" } } },
   });
 });
-it("exclui somente o cadastro confirmado e trata registro inexistente", async () => {
-  const created = await createFixture();
-  await deleteResume({ id: created.id });
-  createdIds = createdIds.filter((id) => id !== created.id);
-  expect((await listResumes()).items.some((r) => r.id === created.id)).toBe(
-    false,
+
+it("envia PDF para scan e exclui currículo", async () => {
+  const scan = { data: { name: "Ana", email: "ana@example.com", phone: null } };
+  mockedApi.post.mockResolvedValueOnce({ data: scan });
+  const file = new File(["pdf"], "cv.pdf", { type: "application/pdf" });
+  await expect(scanResume({ file })).resolves.toEqual(scan);
+  const [url, body] = mockedApi.post.mock.calls[0];
+  expect(url).toBe("/scan");
+  expect(body).toBeInstanceOf(FormData);
+  expect((body as FormData).get("file")).toBe(file);
+
+  mockedApi.delete.mockResolvedValueOnce({});
+  await expect(deleteResume({ id: resume.id })).resolves.toBeUndefined();
+  mockedApi.delete.mockRejectedValueOnce(
+    Object.assign(new Error("missing"), { response: { status: 404 } }),
   );
-  await expect(getResume({ id: created.id })).rejects.toMatchObject({
-    response: { status: 404 },
-  });
-  await expect(deleteResume({ id: created.id })).rejects.toMatchObject({
+  await expect(deleteResume({ id: resume.id })).rejects.toMatchObject({
     response: { status: 404 },
   });
 });

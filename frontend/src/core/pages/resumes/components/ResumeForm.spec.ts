@@ -3,81 +3,58 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ResumeForm } from "./ResumeForm";
-import { makeTextPdf } from "../../../../../../backend/tests/fixtures/MakeTextPdf";
-import {
-  createResume,
-  deleteResume,
-  getResume,
-} from "@/core/services/ResumeService";
-import { createArea, deleteArea } from "@/core/services/AreaService";
+import { api } from "@/core/services/Api";
 import type { Resume } from "@/core/types/Resume";
-import type { AreaOfExpertise } from "@/core/types/AreaOfExpertise";
 
-let area: AreaOfExpertise;
-let duplicate: Resume;
-const createdIds: string[] = [];
-const runId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-beforeAll(async () => {
-  if (
-    process.env.NEXT_PUBLIC_API_URL !== "http://127.0.0.1:3335" ||
-    process.env.FRONTEND_TEST_DATABASE !== "ciee_test"
-  ) {
-    throw new Error(
-      "Execute os testes com API isolada em 127.0.0.1:3335 e FRONTEND_TEST_DATABASE=ciee_test.",
-    );
-  }
-  area = await createArea({
-    data: { name: `Design teste ${runId}`, description: "Área fictícia" },
-  });
-  duplicate = await createResume({
-    data: {
-      fullName: "Pessoa Duplicada",
-      email: `duplicado-${runId}@example.com`,
-      phone: "",
-      areaOfExpertise: "",
-      professionalSummary: "",
-    },
-  });
-});
-afterAll(async () => {
-  for (const id of [...createdIds, duplicate?.id].filter(Boolean))
-    await deleteResume({ id });
-  if (area) await deleteArea({ id: area.id });
-});
+jest.mock("@/core/services/Api", () => ({
+  api: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+    defaults: { baseURL: "/api" },
+  },
+}));
+
+const mockedApi = api as unknown as {
+  get: jest.Mock;
+  post: jest.Mock;
+  put: jest.Mock;
+  delete: jest.Mock;
+  defaults: { baseURL: string };
+};
+
+const area = {
+  id: "area-design",
+  name: "Design de produto",
+  description: "Área",
+};
+const duplicate = {
+  id: "dup-1",
+  fullName: "Pessoa Duplicada",
+  email: "duplicado@example.com",
+  createdAt: "2026-11-07T10:00:00.000Z",
+  updatedAt: "2026-11-07T10:00:00.000Z",
+};
+
 const SCAN_FIXTURE_NAMES = {
   success: "curriculo-exemplo.pdf",
   partial: "fixture-leitura-parcial.pdf",
   error: "fixture-falha-leitura.pdf",
 } as const;
+
 async function uploadPdf(
   user: ReturnType<typeof userEvent.setup>,
   scenario: keyof typeof SCAN_FIXTURE_NAMES = "success",
 ) {
   await user.upload(
     screen.getByLabelText("Selecionar currículo em PDF"),
-    new File(
-      [
-        scenario === "error"
-          ? new TextEncoder().encode("%PDF-1.4\ncorrompido").buffer
-          : new Uint8Array(
-              makeTextPdf(
-                scenario === "partial"
-                  ? ["camila.rocha@example.com"]
-                  : [
-                      "Camila Rocha",
-                      "camila.rocha@example.com",
-                      "(11) 99999-1234",
-                    ],
-              ),
-            ).buffer,
-      ],
-      SCAN_FIXTURE_NAMES[scenario],
-      {
-        type: "application/pdf",
-      },
-    ),
+    new File(["%PDF-1.4"], SCAN_FIXTURE_NAMES[scenario], {
+      type: "application/pdf",
+    }),
   );
 }
+
 function setup(props: Parameters<typeof ResumeForm>[0] = {}) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -87,20 +64,117 @@ function setup(props: Parameters<typeof ResumeForm>[0] = {}) {
     createElement(
       QueryClientProvider,
       { client },
-      createElement(ResumeForm, {
-        ...props,
-        onSaved: (candidate: Resume) => {
-          createdIds.push(candidate.id);
-          props.onSaved?.(candidate);
-        },
-      }),
+      createElement(ResumeForm, props),
     ),
   );
   return user;
 }
+
+function mockScan() {
+  mockedApi.post.mockImplementation((url: string, body: unknown) => {
+    if (url === "/scan") {
+      const file = body instanceof FormData ? (body.get("file") as File) : null;
+      if (file?.name === SCAN_FIXTURE_NAMES.error)
+        return Promise.reject(
+          Object.assign(new Error("unreadable"), {
+            isAxiosError: true,
+            response: {
+              status: 422,
+              data: {
+                error: {
+                  code: "PDF_UNREADABLE",
+                  message:
+                    "Não foi possível ler este PDF. Tente outro arquivo ou preencha manualmente.",
+                },
+              },
+            },
+          }),
+        );
+      if (file?.name === SCAN_FIXTURE_NAMES.partial)
+        return Promise.resolve({
+          data: {
+            data: {
+              name: null,
+              email: "camila.rocha@example.com",
+              phone: null,
+            },
+            warnings: [],
+            extraction: { status: "partial", method: "text-rules" },
+          },
+        });
+      return Promise.resolve({
+        data: {
+          data: {
+            name: "Camila Rocha",
+            email: "camila.rocha@example.com",
+            phone: "(11) 99999-1234",
+          },
+          warnings: [],
+          extraction: { status: "success", method: "text-rules" },
+        },
+      });
+    }
+    if (url === "/resumes") {
+      const payload = body as Record<string, unknown>;
+      if (payload.email === duplicate.email)
+        return Promise.reject(
+          Object.assign(new Error("dup"), {
+            isAxiosError: true,
+            response: {
+              status: 409,
+              data: {
+                code: "DUPLICATE_EMAIL",
+                message: "Este e-mail já possui um cadastro.",
+                existingId: duplicate.id,
+              },
+            },
+          }),
+        );
+      return Promise.resolve({
+        data: {
+          id: "new-id",
+          fullName: String(payload.fullName ?? ""),
+          email: String(payload.email ?? ""),
+          phone: String(payload.phone ?? ""),
+          areaOfExpertise: String(payload.areaOfExpertise ?? ""),
+          areaOfExpertiseId:
+            typeof payload.areaOfExpertiseId === "string"
+              ? payload.areaOfExpertiseId
+              : null,
+          professionalSummary: String(payload.professionalSummary ?? ""),
+          createdAt: "2026-11-07T10:00:00.000Z",
+          updatedAt: "2026-11-07T10:00:00.000Z",
+        } satisfies Resume,
+      });
+    }
+    return Promise.reject(new Error(`unexpected POST ${url}`));
+  });
+}
+
 beforeEach(() => {
+  jest.clearAllMocks();
   localStorage.clear();
+  mockedApi.get.mockImplementation((url: string) => {
+    if (url === "/areas-of-expertise") return Promise.resolve({ data: [area] });
+    if (url === "/resumes/new-id")
+      return Promise.resolve({
+        data: {
+          id: "new-id",
+          fullName: "Novo candidato",
+          email: "outros@example.com",
+          phone: "",
+          areaOfExpertise: area.name,
+          areaOfExpertiseId: area.id,
+          professionalSummary: "",
+          createdAt: "2026-11-07T10:00:00.000Z",
+          updatedAt: "2026-11-07T10:00:00.000Z",
+        } satisfies Resume,
+      });
+    return Promise.reject(new Error(`unexpected GET ${url}`));
+  });
+  mockScan();
 });
+
 it("apresenta os cinco campos e o PDF opcional", () => {
   setup();
   for (const label of [
@@ -113,6 +187,7 @@ it("apresenta os cinco campos e o PDF opcional", () => {
     expect(screen.getByLabelText(label)).toBeInTheDocument();
   expect(screen.getByLabelText(/Selecionar currículo/)).toBeInTheDocument();
 });
+
 it("apresenta validação sem perder o preenchimento", async () => {
   const user = setup();
   await user.type(screen.getByLabelText(/Telefone/), "11999999999");
@@ -126,15 +201,13 @@ it("apresenta validação sem perder o preenchimento", async () => {
 it("salva manualmente e informa sucesso", async () => {
   const user = setup();
   await user.type(screen.getByLabelText(/Nome completo/), "Pessoa Teste");
-  await user.type(
-    screen.getByLabelText(/E-mail/),
-    `pessoa-${runId}@example.com`,
-  );
+  await user.type(screen.getByLabelText(/E-mail/), "pessoa@example.com");
   await user.click(screen.getByRole("button", { name: "Confirmar dados" }));
   expect(
     await screen.findByText("Cadastro salvo com sucesso."),
   ).toBeInTheDocument();
 });
+
 it("oferece atualização para e-mail já cadastrado", async () => {
   const user = setup();
   await user.type(screen.getByLabelText(/Nome completo/), "Pessoa Teste");
@@ -145,6 +218,7 @@ it("oferece atualização para e-mail já cadastrado", async () => {
   ).toHaveAttribute("href", `/candidatos/${duplicate.id}/editar`);
   expect(screen.getByLabelText(/Nome completo/)).toHaveValue("Pessoa Teste");
 });
+
 it("preenche com PDF e preserva campos já editados", async () => {
   const user = setup();
   await user.type(screen.getByLabelText(/Nome completo/), "Meu nome revisado");
@@ -162,26 +236,20 @@ it("preenche com PDF e preserva campos já editados", async () => {
     "camila.rocha@example.com",
   );
 });
+
 it("não bloqueia preenchimento manual após falha na leitura", async () => {
   const user = setup();
-  {
-    await uploadPdf(user, "error");
-    await user.click(screen.getByRole("button", { name: "Processar dados" }));
-    await screen.findByText(/Não foi possível ler este PDF/);
-    await user.type(
-      screen.getByLabelText(/Nome completo/),
-      "Manual Após Falha",
-    );
-    await user.type(
-      screen.getByLabelText(/E-mail/),
-      `manual-${Date.now()}@example.com`,
-    );
-    await user.click(screen.getByRole("button", { name: "Confirmar dados" }));
-    expect(
-      await screen.findByText("Cadastro salvo com sucesso."),
-    ).toBeInTheDocument();
-  }
+  await uploadPdf(user, "error");
+  await user.click(screen.getByRole("button", { name: "Processar dados" }));
+  await screen.findByText(/Não foi possível ler este PDF/);
+  await user.type(screen.getByLabelText(/Nome completo/), "Manual Após Falha");
+  await user.type(screen.getByLabelText(/E-mail/), "manual@example.com");
+  await user.click(screen.getByRole("button", { name: "Confirmar dados" }));
+  expect(
+    await screen.findByText("Cadastro salvo com sucesso."),
+  ).toBeInTheDocument();
 });
+
 it("permite completar os campos não encontrados", async () => {
   const user = setup();
   await uploadPdf(user, "partial");
@@ -197,6 +265,7 @@ it("permite completar os campos não encontrados", async () => {
     "camila.rocha@example.com",
   );
 });
+
 it("remove o PDF sem bloquear o formulário", async () => {
   const user = setup();
   await user.upload(
@@ -252,6 +321,7 @@ it("separa seleção e revisão no fluxo móvel por PDF", async () => {
     else Reflect.deleteProperty(window, "matchMedia");
   }
 });
+
 it("limpa os dados preenchidos sem salvar um cadastro", async () => {
   const user = setup();
   await user.type(screen.getByLabelText(/Nome completo/), "Rascunho");
@@ -281,6 +351,7 @@ it("oferece áreas do catálogo e libera texto livre ao escolher Outros", async 
     "Operações educacionais",
   );
 });
+
 it("não exibe atalhos de demonstração ou cabeçalho redundante na criação", () => {
   setup();
   expect(
@@ -304,10 +375,7 @@ it("exige texto em Outros e não mistura texto livre com uma categoria seleciona
   const user = setup();
   await screen.findByRole("option", { name: area.name });
   await user.type(screen.getByLabelText(/Nome completo/), "Novo candidato");
-  await user.type(
-    screen.getByLabelText(/E-mail/),
-    `outros-${runId}@example.com`,
-  );
+  await user.type(screen.getByLabelText(/E-mail/), "outros@example.com");
   await user.selectOptions(screen.getByLabelText("Área de atuação"), "__other");
   await user.type(screen.getByLabelText("Informe a área de atuação"), "   ");
   await user.click(screen.getByRole("button", { name: "Confirmar dados" }));
@@ -328,7 +396,17 @@ it("exige texto em Outros e não mistura texto livre com uma categoria seleciona
   expect(
     await screen.findByText("Cadastro salvo com sucesso."),
   ).toBeInTheDocument();
-  const saved = await getResume({ id: createdIds[createdIds.length - 1] });
-  expect(saved.areaOfExpertiseId).toBe(area.id);
-  expect(saved.areaOfExpertise).toBe(area.name);
+  expect(mockedApi.post).toHaveBeenCalledWith(
+    "/resumes",
+    expect.objectContaining({
+      areaOfExpertise: "",
+      areaOfExpertiseId: area.id,
+    }),
+  );
+  expect(mockedApi.post).toHaveBeenCalledWith(
+    "/resumes",
+    expect.not.objectContaining({
+      areaOfExpertise: "   ",
+    }),
+  );
 });

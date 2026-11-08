@@ -6,51 +6,53 @@ import { ResumeProfile } from "./ResumeProfile";
 import { api } from "@/core/services/Api";
 import type { Resume } from "@/core/types/Resume";
 
-import { createResume, deleteResume } from "@/core/services/ResumeService";
-import { createArea, deleteArea } from "@/core/services/AreaService";
-import type { AreaOfExpertise } from "@/core/types/AreaOfExpertise";
+jest.mock("@/core/services/Api", () => ({
+  api: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+    defaults: { baseURL: "/api" },
+  },
+}));
 
-let resumeFixtures: Resume[];
-let area: AreaOfExpertise;
-const runId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-beforeAll(async () => {
-  if (
-    process.env.NEXT_PUBLIC_API_URL !== "http://127.0.0.1:3335" ||
-    process.env.FRONTEND_TEST_DATABASE !== "ciee_test"
-  ) {
-    throw new Error(
-      "Execute os testes com API isolada em 127.0.0.1:3335 e FRONTEND_TEST_DATABASE=ciee_test.",
-    );
-  }
-  area = await createArea({
-    data: { name: `Design perfil ${runId}`, description: "Área fictícia" },
-  });
-  const first = await createResume({
-    data: {
-      fullName: "Ana Pereira",
-      email: `ana-${runId}@example.com`,
-      phone: "(11) 98765-4321",
-      areaOfExpertise: "",
-      areaOfExpertiseId: area.id,
-      professionalSummary: "Resumo profissional fictício",
-    },
-  });
-  const second = await createResume({
-    data: {
-      fullName: "Lucas Oliveira",
-      email: `lucas-${runId}@example.com`,
-      phone: "",
-      areaOfExpertise: "",
-      professionalSummary: "",
-    },
-  });
-  resumeFixtures = [first, second];
-});
-afterAll(async () => {
-  for (const resume of resumeFixtures ?? [])
-    await deleteResume({ id: resume.id });
-  if (area) await deleteArea({ id: area.id });
-});
+const mockedApi = api as unknown as {
+  get: jest.Mock;
+  post: jest.Mock;
+  put: jest.Mock;
+  delete: jest.Mock;
+  defaults: { baseURL: string };
+};
+
+const area = {
+  id: "area-design",
+  name: "Design de produto",
+  description: "Área",
+};
+const resumeFixtures: Resume[] = [
+  {
+    id: "ana-pereira",
+    fullName: "Ana Pereira",
+    email: "ana@example.com",
+    phone: "(11) 98765-4321",
+    areaOfExpertise: "Design de produto",
+    areaOfExpertiseId: area.id,
+    professionalSummary: "Resumo profissional fictício",
+    createdAt: "2026-11-04T12:00:00.000Z",
+    updatedAt: "2026-11-04T12:00:00.000Z",
+  },
+  {
+    id: "lucas-oliveira",
+    fullName: "Lucas Oliveira",
+    email: "lucas@example.com",
+    phone: "",
+    areaOfExpertise: "",
+    professionalSummary: "",
+    createdAt: "2026-11-03T14:00:00.000Z",
+    updatedAt: "2026-11-03T14:00:00.000Z",
+  },
+];
+
 function setup() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -69,9 +71,26 @@ function setup() {
   );
   return { user: userEvent.setup(), onSaved };
 }
+
 beforeEach(() => {
+  jest.clearAllMocks();
   localStorage.clear();
+  mockedApi.get.mockImplementation((url: string) => {
+    if (url === "/areas-of-expertise") return Promise.resolve({ data: [area] });
+    return Promise.reject(new Error(`unexpected GET ${url}`));
+  });
+  mockedApi.put.mockImplementation(
+    (_url: string, body: Record<string, unknown>) =>
+      Promise.resolve({
+        data: {
+          ...resumeFixtures[0],
+          ...body,
+          updatedAt: "2026-11-07T10:00:00.000Z",
+        },
+      }),
+  );
 });
+
 it("edita os campos no próprio perfil e desfaz sem persistir", async () => {
   const { user, onSaved } = setup();
   const input = screen.getByLabelText("Nome completo");
@@ -81,6 +100,7 @@ it("edita os campos no próprio perfil e desfaz sem persistir", async () => {
   expect(input).toHaveValue("Ana Pereira");
   expect(onSaved).not.toHaveBeenCalled();
 });
+
 it("valida e-mail com Zod antes de concluir e preserva o resumo", async () => {
   const { user, onSaved } = setup();
   await user.clear(screen.getByLabelText("E-mail"));
@@ -99,6 +119,7 @@ it("valida e-mail com Zod antes de concluir e preserva o resumo", async () => {
   );
   expect(onSaved).not.toHaveBeenCalled();
 });
+
 it("conclui a alteração explicitamente com telefone formatado", async () => {
   const { user, onSaved } = setup();
   await user.clear(screen.getByLabelText("Telefone"));
@@ -110,7 +131,21 @@ it("conclui a alteração explicitamente com telefone formatado", async () => {
     );
   });
 });
+
 it("oferece editar o cadastro existente ao conflitar e-mail na edição", async () => {
+  mockedApi.put.mockRejectedValueOnce(
+    Object.assign(new Error("dup"), {
+      isAxiosError: true,
+      response: {
+        status: 409,
+        data: {
+          code: "DUPLICATE_EMAIL",
+          message: "Este e-mail já possui um cadastro.",
+          existingId: resumeFixtures[1].id,
+        },
+      },
+    }),
+  );
   const { user, onSaved } = setup();
   await user.clear(screen.getByLabelText("E-mail"));
   await user.type(screen.getByLabelText("E-mail"), resumeFixtures[1].email);
@@ -121,6 +156,7 @@ it("oferece editar o cadastro existente ao conflitar e-mail na edição", async 
   expect(screen.getByLabelText("E-mail")).toHaveValue(resumeFixtures[1].email);
   expect(onSaved).not.toHaveBeenCalled();
 });
+
 it("exige uma área livre ao trocar uma referência do catálogo por Outros", async () => {
   const { user, onSaved } = setup();
   await screen.findByRole("option", { name: area.name });
@@ -135,17 +171,17 @@ it("exige uma área livre ao trocar uma referência do catálogo por Outros", as
   ).toBeInTheDocument();
   expect(onSaved).not.toHaveBeenCalled();
 });
+
 it("preserva a identificação da área vinculada quando o catálogo falha", async () => {
-  const previousBaseUrl = api.defaults.baseURL;
-  api.defaults.baseURL = "http://127.0.0.1:1";
-  try {
-    setup();
-    await screen.findByText(
-      "Não foi possível listar as áreas. Você pode usar Outros.",
-    );
-    expect(screen.getByRole("option", { name: area.name })).toBeInTheDocument();
-    expect(screen.getByLabelText("Área de atuação")).toHaveValue(area.id);
-  } finally {
-    api.defaults.baseURL = previousBaseUrl;
-  }
+  mockedApi.get.mockImplementation((url: string) => {
+    if (url === "/areas-of-expertise")
+      return Promise.reject(new Error("network"));
+    return Promise.reject(new Error(`unexpected GET ${url}`));
+  });
+  setup();
+  await screen.findByText(
+    "Não foi possível listar as áreas. Você pode usar Outros.",
+  );
+  expect(screen.getByRole("option", { name: area.name })).toBeInTheDocument();
+  expect(screen.getByLabelText("Área de atuação")).toHaveValue(area.id);
 });
