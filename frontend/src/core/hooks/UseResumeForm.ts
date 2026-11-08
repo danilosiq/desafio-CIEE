@@ -143,7 +143,12 @@ export function useResumeForm({ initial, onSaved }: UseResumeFormProps) {
         editedFields.current,
         getValues(),
       );
-      for (const name of ["fullName", "email", "phone"] as const) {
+      for (const name of [
+        "fullName",
+        "email",
+        "phone",
+        "professionalSummary",
+      ] as const) {
         if (suggestions[name]) {
           const value =
             name === "phone"

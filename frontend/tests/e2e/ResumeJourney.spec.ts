@@ -841,11 +841,13 @@ it("mostra somente cards no celular e preserva a escolha do desktop ao redimensi
   });
   await page.getByLabel("Buscar candidatos").fill("Ana");
   await page.setViewportSize({ width: 640, height: 900 });
-  await waitForView("list");
+  await waitForView("grid");
   expect(
     await page.getByRole("button", { name: "Visualizar em lista" }).isVisible(),
   ).toBe(true);
   expect(await page.getByLabel("Buscar candidatos").inputValue()).toBe("Ana");
+  await page.getByRole("button", { name: "Visualizar em lista" }).click();
+  await waitForView("list");
   await page.getByRole("button", { name: "Visualizar em cards" }).click();
   await waitForView("grid");
   await page.setViewportSize({ width: 639, height: 844 });

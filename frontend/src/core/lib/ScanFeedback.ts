@@ -5,6 +5,7 @@ export function scanFeedback(result: ScanResult): string {
     ["nome", result.data.name],
     ["e-mail", result.data.email],
     ["telefone", result.data.phone],
+    ["resumo profissional", result.data.professionalSummary],
   ] as const;
   const found = fields.filter(([, value]) => !!value).map(([label]) => label);
   const missing = fields.filter(([, value]) => !value).map(([label]) => label);

@@ -28,3 +28,22 @@ it("não substitui valores já presentes, mesmo que não estejam marcados como e
     selectScanSuggestions(sample, new Set(), { fullName: "Pessoa existente" }),
   ).toEqual({ email: "ana@example.com" });
 });
+
+it("preserva resumo editado", () => {
+  const result = {
+    ...sample,
+    data: { ...sample.data, professionalSummary: "Resumo sugerido" },
+  };
+  expect(selectScanSuggestions(result, new Set()).professionalSummary).toBe(
+    "Resumo sugerido",
+  );
+  expect(
+    selectScanSuggestions(result, new Set(["professionalSummary"]))
+      .professionalSummary,
+  ).toBeUndefined();
+  expect(
+    selectScanSuggestions(result, new Set(), {
+      professionalSummary: "Já escrito",
+    }).professionalSummary,
+  ).toBeUndefined();
+});

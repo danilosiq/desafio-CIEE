@@ -6,6 +6,7 @@ import { ErrorState, LoadingState } from "@/core/components/Feedback";
 import { Column, Row, Text, Title } from "@/core/components/Primitives";
 import { useIsMobile } from "@/core/hooks/UseIsMobile";
 import { useResumes } from "@/core/hooks/UseResumes";
+import { matchesSearch } from "@/core/lib/SearchText";
 import { compareAsc, parseISO } from "date-fns";
 import {
   FilePlus2,
@@ -27,7 +28,7 @@ export function ResumesPage() {
   const sentinel = useRef<HTMLDivElement | null>(null);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<ResumeSort>("alphabetical");
-  const [view, setView] = useState<"list" | "grid">("list");
+  const [view, setView] = useState<"list" | "grid">("grid");
   const isMobile = useIsMobile();
   const displayView = isMobile ? "grid" : view;
   const [dialog, setDialog] = useState<{
@@ -64,9 +65,10 @@ export function ResumesPage() {
   ]);
   const filtered = rows
     .filter((row) =>
-      `${row.fullName} ${row.email} ${row.phone} ${row.areaOfExpertise}`
-        .toLocaleLowerCase("pt-BR")
-        .includes(search.toLocaleLowerCase("pt-BR")),
+      matchesSearch(
+        `${row.fullName} ${row.email} ${row.phone} ${row.areaOfExpertise}`,
+        search,
+      ),
     )
     .sort((a, b) => {
       const alphabetical = a.fullName.localeCompare(b.fullName, "pt-BR", {
