@@ -29,7 +29,6 @@ jobs:
           --health-start-period 30s
     env:
       DATABASE_URL: "sqlserver://127.0.0.1:1433;database=ciee_test;user=sa;password=CI-only_StrongPassword2026!;encrypt=true;trustServerCertificate=true"
-      NODE_ENV: test
       NODE_OPTIONS: --experimental-vm-modules
       NEXT_PUBLIC_API_URL: http://127.0.0.1:3335
       FRONTEND_TEST_DATABASE: ciee_test
@@ -56,9 +55,13 @@ jobs:
         run: npm run migrate:deploy
       - name: Verificar backend
         working-directory: backend
+        env:
+          NODE_ENV: test
         run: npm run check
       - name: Iniciar API de teste
         working-directory: backend
+        env:
+          NODE_ENV: test
         run: |
           PORT=3335 node dist/main/Server.js > "$RUNNER_TEMP/ciee-api.log" 2>&1 &
           for attempt in {1..60}; do
