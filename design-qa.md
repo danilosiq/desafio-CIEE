@@ -31,11 +31,11 @@ O wireframe não define densidade ou viewport CSS. As renderizações foram redu
 
 ## Limites
 
-A leitura é simulada; nenhum PDF é enviado ao backend/Ollama nesta etapa. Não houve auditoria em Safari, teclado virtual físico ou leitor de tela. Imagens são evidências locais ignoradas pelo Git; não são snapshots pixel a pixel automatizados. As instruções posteriores do autor prevalecem sobre elementos presentes no desenho original.
+A leitura é simulada; nenhum PDF é enviado ao backend nesta etapa. Não houve auditoria em Safari, teclado virtual físico ou leitor de tela. Imagens são evidências locais ignoradas pelo Git; não são snapshots pixel a pixel automatizados. As instruções posteriores do autor prevalecem sobre elementos presentes no desenho original.
 
 ## Validação final
 
-`yarn fullcheck` aprovado: 48 testes de componentes/regras, tipos, arquitetura, formatação, cobertura e build. Suíte E2E completa: 23 aprovados, sem skips, incluindo barra móvel, fluxo em etapas, áreas existentes/personalizadas, remoções de UI, troca de arquivo e movimento reduzido. A execução interrompida por disco cheio não foi considerada sucesso; os resultados acima são da repetição concluída após remover somente cache gerado do frontend.
+Verificações de `fullcheck` aprovadas: 48 testes de componentes/regras, tipos, arquitetura, formatação, cobertura e build. Suíte E2E completa: 23 aprovados, sem skips, incluindo barra móvel, fluxo em etapas, áreas existentes/personalizadas, remoções de UI, troca de arquivo e movimento reduzido. A execução interrompida por disco cheio não foi considerada sucesso; os resultados acima são da repetição concluída após remover somente cache gerado do frontend.
 
 Nenhum achado P0/P1/P2 permanece aberto. As diferenças de paleta/caligrafia e o recorte rolável da revisão são intencionais e estão descritos acima.
 

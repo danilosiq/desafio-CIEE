@@ -39,7 +39,7 @@ Os nomes e exemplos deste documento são genéricos e não definem funcionalidad
 - date-fns para manipulação, comparação e formatação de datas
 - Microsoft SQL Server como banco de dados relacional
 - Swagger UI com especificação OpenAPI para documentação das rotas
-- Ollama local com o modelo `qwen2.5vl:7b` para leitura visual e extração de campos dos currículos em PDF
+- `pdf-parse` para extração local de texto e regras determinísticas para sugerir nome, e-mail e telefone
 - PDF.js (`pdfjs-dist`) com `@napi-rs/canvas` para renderizar páginas de PDF em imagens no backend Node.js
 
 Não adicionar frameworks, bibliotecas de validação ou containers de injeção de dependência sem necessidade concreta. Injeção por construtor e composição manual são suficientes como padrão inicial.
@@ -264,35 +264,16 @@ O exemplo demonstra apenas a separação entre contrato e caso de uso. A decisã
 
 ---
 
-## Padronização do Ollama e Qwen
+## Extração local de texto de currículos
 
-- Utilizar Ollama local com `qwen2.5vl:7b` como solução escolhida para leitura e interpretação dos currículos. Essa decisão substitui o PaddleOCR; não adicionar PaddleOCR, outro modelo ou serviço de inferência sem solicitação.
-- Isolar a integração em um provider de infraestrutura do módulo responsável pela leitura de documentos, com contrato definido em `application/providers` e injeção por construtor no use case.
-- Controllers devem apenas receber o arquivo validado e delegar ao use case. Use cases não devem importar SDKs, formatos de resposta ou detalhes de execução do Ollama.
-- Renderizar as páginas do PDF em imagens com PDF.js (`pdfjs-dist`) e `@napi-rs/canvas` no backend Node.js antes da chamada ao modelo. Não utilizar `pdf-lib` para renderização. Isolar a renderização da integração de inferência para permitir testes e evolução independentes.
-- O Qwen deve realizar a leitura visual e a identificação dos campos; não exigir uma etapa separada de OCR. Para várias páginas, definir e testar a estratégia de processamento e consolidação sem descartar silenciosamente conteúdo.
-- Solicitar saída estruturada por schema JSON e normalizar a resposta em DTOs internos. Validar o formato e os valores retornados; não expor a resposta bruta do modelo ou presumir que um JSON válido contém dados corretos.
-- Centralizar configuração de endereço do Ollama, modelo, parâmetros de inferência, contexto, renderização, concorrência e tempo limite. Documentar versão do Ollama, tag e identificação do modelo e configurações realmente utilizadas para permitir reprodução.
-- Integrar o backend diretamente ao Ollama, sem criar uma API Python adicional. O Ollama é um processo local separado, não uma biblioteca que executa o modelo dentro do processo Node.js.
-- Verificar disponibilidade do Ollama e do modelo, com mensagens claras de setup. Não baixar modelos a cada requisição nem impedir o cadastro manual quando a inferência estiver indisponível.
-- Validar no backend o limite de 5 MB e se o conteúdo é de fato um PDF; não confiar apenas na extensão ou no MIME informado pelo cliente. Aplicar o limite no recebimento do upload, antes do OCR.
-- Tratar PDF inválido, protegido por senha, sem texto reconhecível, indisponibilidade e tempo limite com mensagens claras, preservando o cadastro manual.
-- Garantir limpeza de arquivos temporários tanto no sucesso quanto na falha e não registrar currículos ou dados pessoais em logs.
-- Manter limites de tempo e recursos configuráveis; não adicionar limites funcionais de páginas ou outras restrições sem alinhamento com a especificação.
-- Cobrir os contratos e cenários de falha em testes; validar a integração real com PDFs fictícios, incluindo documentos digitalizados e campos ausentes.
-- Documentar limitações observadas de reconhecimento, idioma e layout, sem prometer extração perfeita.
-
-Referências técnicas: [modelo no Ollama](https://ollama.com/library/qwen2.5vl:7b), [entrada de imagens](https://docs.ollama.com/capabilities/vision) e [saídas estruturadas](https://docs.ollama.com/capabilities/structured-outputs). Conferir a documentação da versão efetivamente adotada antes da implementação.
-
-### Prompts de extração
-
-- Manter as instruções de extração para o Qwen em arquivo `.md` próprio, versionado em `src/modules/<modulo>/infra/prompts/`, com nome descritivo em PascalCase. `<modulo>` é um placeholder, não uma pasta literal a criar.
-- Não escrever prompts inline em controllers, use cases, providers ou variáveis de ambiente. O provider deve carregar o arquivo; garantir sua disponibilidade no build e em execução.
-- Separar o texto do prompt das configurações de modelo, credenciais, carregamento e validação de resposta. Não incluir dados pessoais reais ou segredos no arquivo.
-- Definir explicitamente os campos e o formato da saída, representar dados não encontrados por ausência ou `null` conforme o contrato e proibir a invenção de informações.
-- Tratar as imagens e qualquer texto do currículo como dados não confiáveis, nunca como instruções para o modelo; validar a saída antes de devolvê-la ao formulário.
-- Versionar mudanças de prompt junto dos testes de extração afetados e registrar modelo, propósito e limitações no `../DESENVOLVIMENTO.md`.
-- Não criar arquivos de prompt vazios ou sem uso antecipadamente.
+- Processar PDFs no backend Node.js, sem enviar documentos a serviços externos. A extração é opcional, e falhas não impedem o cadastro manual.
+- Isolar leitura de texto e heurísticas de extração no módulo de processamento; controllers recebem o arquivo validado e delegam ao caso de uso por contratos de aplicação.
+- Usar `pdf-parse` para extrair texto selecionável, com limites configuráveis de páginas, tempo e concorrência. Se qualquer limite for excedido, retornar falha explícita, sem omitir páginas.
+- Validar no recebimento um único PDF de até 5 MiB, incluindo tipo, extensão e assinatura, sem confiar apenas em metadados fornecidos pelo cliente.
+- Extrair nome, e-mail e telefone como sugestões revisáveis; usar `null` quando o valor não for identificável ou for ambíguo. Não criar ou atualizar candidato durante a leitura.
+- Tratar PDFs inválidos, corrompidos, protegidos por senha ou sem texto selecionável com mensagens claras e alternativa manual.
+- Liberar os recursos em todos os caminhos e nunca registrar currículos, dados pessoais ou credenciais em logs.
+- Cobrir contratos e falhas com testes, usando PDFs fictícios de texto e imagem, e documentar limites das heurísticas de nome e de layouts complexos.
 
 ---
 
