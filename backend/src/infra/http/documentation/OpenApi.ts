@@ -76,12 +76,13 @@ export const openApi = {
     },
     "/resumes": {
       get: {
-        summary: "Lista currículos com paginação de até 30 registros.",
+        summary: "Lista currículos com paginação e pesquisa.",
         description:
-          "Ordenação por createdAt decrescente e id crescente como desempate. Página sem registros retorna items vazio; sem registros, totalPages é 0. O deslocamento não pode ultrapassar 2147483647.",
+          "Ordenação por createdAt decrescente e id crescente como desempate. Pesquisa textual opcional (q) filtra no backend por nome, e-mail, telefone e área. Página sem registros retorna items vazio; sem registros, totalPages é 0. O deslocamento não pode ultrapassar 2147483647.",
         parameters: [
           { name: "page", in: "query", required: false, schema: { type: "integer", minimum: 1, maximum: 2147483648, default: 1 }, example: 1 },
           { name: "limit", in: "query", required: false, schema: { type: "integer", minimum: 1, maximum: 30, default: 30 }, example: 30 },
+          { name: "q", in: "query", required: false, schema: { type: "string" }, description: "Texto para filtrar candidatos (nome, e-mail, telefone ou área). A busca é aplicada no backend." },
         ],
         responses: {
           "200": {

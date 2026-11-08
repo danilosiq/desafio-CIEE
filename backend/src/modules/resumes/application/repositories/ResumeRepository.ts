@@ -20,6 +20,7 @@ export type ResumeData = {
 export type ResumeListInput = {
     page: number;
     limit: number;
+    search?: string;
 };
 export type ResumeListData = {
     items: ResumeData[];

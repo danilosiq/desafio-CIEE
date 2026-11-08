@@ -16,9 +16,17 @@ type ResumeListResponse =
 export async function listResumes({
   page = 1,
   limit = 30,
-}: { page?: number; limit?: number } = {}): Promise<ResumeListPage> {
+  search,
+}: {
+  page?: number;
+  limit?: number;
+  search?: string;
+} = {}): Promise<ResumeListPage> {
+  const q = search?.trim();
   const data = (
-    await api.get<ResumeListResponse>("/resumes", { params: { page, limit } })
+    await api.get<ResumeListResponse>("/resumes", {
+      params: { page, limit, ...(q ? { q } : {}) },
+    })
   ).data;
   if (Array.isArray(data))
     return {

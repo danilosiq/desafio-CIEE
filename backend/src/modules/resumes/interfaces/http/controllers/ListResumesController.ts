@@ -11,7 +11,12 @@ function readInteger(value: unknown): number | undefined {
 export class ListResumesController {
     constructor(private readonly useCase: ListResumesUseCase) { }
     async handle(request: Request, response: Response): Promise<void> {
-        const output = await this.useCase.execute({ page: readInteger(request.query.page), limit: readInteger(request.query.limit) });
+        const q = typeof request.query.q === 'string' ? request.query.q.trim() : (typeof request.query.search === 'string' ? request.query.search.trim() : '');
+        const output = await this.useCase.execute({
+            page: readInteger(request.query.page),
+            limit: readInteger(request.query.limit),
+            ...(q ? { search: q } : {}),
+        });
         response.status(200).json(output);
     }
 }

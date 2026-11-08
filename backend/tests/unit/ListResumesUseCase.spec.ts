@@ -10,6 +10,10 @@ it('supports smaller page sizes and later pages', async () => {
     expect(await useCase.execute({ page: 3, limit: 10 })).toMatchObject({ page: 3, limit: 10, totalPages: 7 });
     expect(list).toHaveBeenCalledWith({ page: 3, limit: 10 });
 });
+it('passes normalized search to repository', async () => {
+    await useCase.execute({ page: 1, limit: 30, search: ' Ana ' });
+    expect(list).toHaveBeenCalledWith({ page: 1, limit: 30, search: 'Ana' });
+});
 it.each([{ limit: 31 }, { limit: 0 }, { limit: -1 }, { limit: 1.5 }, { page: 0 }, { page: -1 }, { page: NaN }, { page: Infinity }, { page: 1.5 }, { page: Number.MAX_SAFE_INTEGER }])('rejects invalid pagination %p before querying', async (input) => {
     await expect(useCase.execute(input)).rejects.toThrow('Paginação inválida');
     expect(list).not.toHaveBeenCalled();

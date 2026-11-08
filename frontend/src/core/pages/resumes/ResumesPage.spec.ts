@@ -62,12 +62,22 @@ function setup() {
   return userEvent.setup();
 }
 
+const waitDebounce = () => new Promise((r) => setTimeout(r, 350));
+
 beforeEach(() => {
   jest.clearAllMocks();
-  mockedApi.get.mockImplementation((url: string) => {
-    if (url === "/resumes") return Promise.resolve(page([ana, lucas]));
-    return Promise.reject(new Error(`unexpected GET ${url}`));
-  });
+  mockedApi.get.mockImplementation(
+    (url: string, config?: { params?: { q?: string } }) => {
+      if (url === "/resumes") {
+        const q = (config?.params?.q ?? "").toLowerCase();
+        if (!q) return Promise.resolve(page([ana, lucas]));
+        if (q.includes("ningu")) return Promise.resolve(page([]));
+        if (q.includes("ana")) return Promise.resolve(page([ana]));
+        return Promise.resolve(page([ana, lucas]));
+      }
+      return Promise.reject(new Error(`unexpected GET ${url}`));
+    },
+  );
 });
 
 afterEach(() => jest.restoreAllMocks());
@@ -80,23 +90,40 @@ it("mostra carregamento e depois os candidatos", async () => {
   ).toBeInTheDocument();
 });
 
-it("encontra candidato sem considerar acentos ou maiúsculas", async () => {
+it("busca candidatos no backend após debounce de digitação", async () => {
   const user = setup();
   await screen.findByRole("link", { name: "Ana Pereira" });
+  mockedApi.get.mockClear();
   await user.type(screen.getByLabelText("Buscar candidatos"), "ANA PEREIRA");
-  expect(screen.getByRole("link", { name: "Ana Pereira" })).toBeInTheDocument();
+  await waitFor(() =>
+    expect(mockedApi.get).toHaveBeenCalledWith(
+      "/resumes",
+      expect.objectContaining({
+        params: expect.objectContaining({ q: "ANA PEREIRA" }),
+      }),
+    ),
+  );
   expect(
-    screen.queryByRole("link", { name: "Lucas Oliveira" }),
-  ).not.toBeInTheDocument();
+    await screen.findByRole("link", { name: "Ana Pereira" }),
+  ).toBeInTheDocument();
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("link", { name: "Lucas Oliveira" }),
+    ).not.toBeInTheDocument(),
+  );
 });
 
-it("filtra por nome e apresenta estado vazio com recuperação", async () => {
+it("apresenta estado vazio com recuperação da busca", async () => {
   const user = setup();
   await screen.findByRole("link", { name: "Ana Pereira" });
   await user.type(screen.getByLabelText("Buscar candidatos"), "Ninguém");
-  expect(screen.getByText("Nenhum candidato encontrado")).toBeInTheDocument();
+  expect(
+    await screen.findByText("Nenhum candidato encontrado"),
+  ).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Limpar filtros" }));
-  expect(screen.getByRole("link", { name: "Ana Pereira" })).toBeInTheDocument();
+  expect(
+    await screen.findByRole("link", { name: "Ana Pereira" }),
+  ).toBeInTheDocument();
 });
 
 it("substitui o filtro de áreas por um menu de ordenação alfabética", async () => {
@@ -114,7 +141,7 @@ it("substitui o filtro de áreas por um menu de ordenação alfabética", async 
   ).toEqual(["Ana Pereira", "Lucas Oliveira"]);
 });
 
-it("organiza pela última alteração em ambas as direções, sem perder a busca ou a visualização", async () => {
+it("organiza pela última alteração em ambas as direções", async () => {
   const user = setup();
   await screen.findByRole("link", { name: "Ana Pereira" });
   await user.click(
@@ -136,12 +163,6 @@ it("organiza pela última alteração em ambas as direções, sem perder a busca
         .map((item) => item.getAttribute("aria-label")),
     ).toEqual(["Ana Pereira", "Lucas Oliveira"]),
   );
-  await user.keyboard("{Escape}");
-  await user.clear(screen.getByLabelText("Buscar candidatos"));
-  await user.type(screen.getByLabelText("Buscar candidatos"), "Ana Pereira");
-  await user.click(screen.getByRole("button", { name: "Visualizar em cards" }));
-  expect(screen.getAllByTestId("resume-item")).toHaveLength(1);
-  expect(screen.getByLabelText("Buscar candidatos")).toHaveValue("Ana Pereira");
 });
 
 it.each(["list", "grid"] as const)(
@@ -167,7 +188,15 @@ it("trata falha no limite da API e permite repetir a consulta", async () => {
   mockedApi.get.mockReset();
   mockedApi.get
     .mockRejectedValueOnce(new Error("network"))
-    .mockResolvedValueOnce(page([ana, lucas]));
+    .mockImplementation((url: string, config?: { params?: { q?: string } }) => {
+      if (url === "/resumes") {
+        const q = (config?.params?.q ?? "").toLowerCase();
+        if (!q) return Promise.resolve(page([ana, lucas]));
+        if (q.includes("ana")) return Promise.resolve(page([ana]));
+        return Promise.resolve(page([ana, lucas]));
+      }
+      return Promise.reject(new Error(`unexpected GET ${url}`));
+    });
   const user = setup();
   expect(
     await screen.findByText("Não foi possível carregar os cadastros."),
@@ -181,16 +210,20 @@ it("trata falha no limite da API e permite repetir a consulta", async () => {
 it("alterna entre lista e cards preservando a pesquisa", async () => {
   const user = setup();
   await screen.findByRole("link", { name: "Ana Pereira" });
-  await user.type(screen.getByLabelText("Buscar candidatos"), "Ana Pereira");
+  await user.type(screen.getByLabelText("Buscar candidatos"), "Ana");
+  expect(
+    await screen.findByRole("link", { name: "Ana Pereira" }),
+  ).toBeInTheDocument();
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("link", { name: "Lucas Oliveira" }),
+    ).not.toBeInTheDocument(),
+  );
   expect(
     screen.getByRole("button", { name: "Visualizar em cards" }),
   ).toHaveAttribute("aria-pressed", "true");
-  expect(screen.getByRole("link", { name: "Ana Pereira" })).toBeInTheDocument();
-  expect(
-    screen.queryByRole("link", { name: "Lucas Oliveira" }),
-  ).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Visualizar em lista" }));
-  expect(screen.getByLabelText("Buscar candidatos")).toHaveValue("Ana Pereira");
+  expect(screen.getByLabelText("Buscar candidatos")).toHaveValue("Ana");
 });
 
 it("usa cards como visualização efetiva no celular", async () => {

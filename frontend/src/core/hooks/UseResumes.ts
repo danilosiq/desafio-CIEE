@@ -18,13 +18,20 @@ import {
 
 export const resumeKeys = {
   all: ["resumes"] as const,
+  list: (search = "") => ["resumes", "list", search.trim()] as const,
   detail: (id: string) => ["resumes", id] as const,
 };
 
-export function useResumes(limit = 30) {
+export function useResumes(
+  options: { limit?: number; search?: string } | number = {},
+) {
+  const { limit = 30, search = "" } =
+    typeof options === "number" ? { limit: options } : options;
+  const q = search.trim();
   return useInfiniteQuery({
-    queryKey: resumeKeys.all,
-    queryFn: ({ pageParam }) => listResumes({ page: pageParam, limit }),
+    queryKey: resumeKeys.list(q),
+    queryFn: ({ pageParam }) =>
+      listResumes({ page: pageParam, limit, search: q || undefined }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) =>
       lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined,
@@ -60,8 +67,8 @@ export function useDeleteResume() {
   return useMutation({
     mutationFn: deleteResume,
     onSuccess: async (_, { id }) => {
-      client.setQueryData<InfiniteData<ResumeListPage>>(
-        resumeKeys.all,
+      client.setQueriesData<InfiniteData<ResumeListPage>>(
+        { queryKey: resumeKeys.all },
         (data) =>
           data
             ? {

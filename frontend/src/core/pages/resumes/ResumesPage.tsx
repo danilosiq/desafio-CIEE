@@ -6,7 +6,6 @@ import { ErrorState, LoadingState } from "@/core/components/Feedback";
 import { Column, Row, Text, Title } from "@/core/components/Primitives";
 import { useIsMobile } from "@/core/hooks/UseIsMobile";
 import { useResumes } from "@/core/hooks/UseResumes";
-import { matchesSearch } from "@/core/lib/SearchText";
 import { compareAsc, parseISO } from "date-fns";
 import {
   FilePlus2,
@@ -23,10 +22,15 @@ import { ResumeCollection } from "./components/ResumeCollection";
 import { ResumeSortMenu, type ResumeSort } from "./components/ResumeSortMenu";
 
 export function ResumesPage() {
-  const query = useResumes();
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+  const query = useResumes({ search: debouncedSearch });
   const trigger = useRef<HTMLElement | null>(null);
   const sentinel = useRef<HTMLDivElement | null>(null);
-  const [search, setSearch] = useState("");
   const [sort, setSort] = useState<ResumeSort>("alphabetical");
   const [view, setView] = useState<"list" | "grid">("grid");
   const isMobile = useIsMobile();
@@ -63,26 +67,17 @@ export function ResumesPage() {
     query.fetchNextPage,
     rows.length,
   ]);
-  const filtered = rows
-    .filter((row) =>
-      matchesSearch(
-        `${row.fullName} ${row.email} ${row.phone} ${row.areaOfExpertise}`,
-        search,
-      ),
-    )
-    .sort((a, b) => {
-      const alphabetical = a.fullName.localeCompare(b.fullName, "pt-BR", {
-        sensitivity: "base",
-      });
-      if (sort === "alphabetical") return alphabetical;
-      const chronological = compareAsc(
-        parseISO(a.updatedAt),
-        parseISO(b.updatedAt),
-      );
-      return (
-        (sort === "oldest" ? chronological : -chronological) || alphabetical
-      );
+  const filtered = [...rows].sort((a, b) => {
+    const alphabetical = a.fullName.localeCompare(b.fullName, "pt-BR", {
+      sensitivity: "base",
     });
+    if (sort === "alphabetical") return alphabetical;
+    const chronological = compareAsc(
+      parseISO(a.updatedAt),
+      parseISO(b.updatedAt),
+    );
+    return (sort === "oldest" ? chronological : -chronological) || alphabetical;
+  });
 
   return (
     <Column className="gap-6">
@@ -191,6 +186,7 @@ export function ResumesPage() {
               variant="outline"
               onClick={() => {
                 setSearch("");
+                setDebouncedSearch("");
               }}
             >
               Limpar filtros

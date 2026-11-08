@@ -9,9 +9,10 @@ export type ListResumesOutput = {
 };
 export class ListResumesUseCase {
     constructor(private readonly repository: Pick<ResumeRepository, 'list'>) { }
-    async execute(input: PaginationInput): Promise<ListResumesOutput> {
+    async execute(input: PaginationInput & { search?: string }): Promise<ListResumesOutput> {
         const pagination = getPagination(input);
-        const result = await this.repository.list(pagination);
+        const search = typeof input.search === 'string' && input.search.trim() ? input.search.trim() : undefined;
+        const result = await this.repository.list({ ...pagination, ...(search ? { search } : {}) });
         return { ...result, ...pagination, totalPages: Math.ceil(result.total / pagination.limit) };
     }
 }

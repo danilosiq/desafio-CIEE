@@ -24,6 +24,10 @@ it("accepts a smaller limit and a subsequent page", async () => {
   await request(app).get("/resumes?page=2&limit=10").expect(200);
   expect(repository.list).toHaveBeenCalledWith({ page: 2, limit: 10 });
 });
+it("passes q search param to repository", async () => {
+  await request(app).get("/resumes?q=Ana%20Pereira").expect(200);
+  expect(repository.list).toHaveBeenCalledWith({ page: 1, limit: 30, search: "Ana Pereira" });
+});
 it("exposes the actual pagination contract as OpenAPI", async () => {
   const response = await request(app).get("/openapi.json").expect(200);
   const parameters = response.body.paths["/resumes"].get.parameters;
