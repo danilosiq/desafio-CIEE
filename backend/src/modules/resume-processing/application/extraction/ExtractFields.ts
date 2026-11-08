@@ -1,9 +1,23 @@
-export type Fields = { name: string | null; email: string | null; phone: string | null };
+export type Fields = { name: string | null; email: string | null; phone: string | null; professionalSummary: string | null };
 export type ExtractionResult = { data: Fields; warnings: string[]; extraction: { status: "success" | "partial"; method: "text-rules" } };
 
 const strip = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 const blockedWords = new Set(["curriculo", "curriculum", "resume", "perfil", "profissional", "experiencia", "formacao", "academica", "objetivo", "dados", "pessoais", "contato", "referencia", "desenvolvedor", "desenvolvedora", "engenheiro", "engenheira", "analista", "gerente", "designer", "software", "frontend", "backend", "full", "stack", "tecnologia", "tecnologias", "python", "react", "graduacao", "educacao", "nacionalidade", "brasileiro", "brasileira", "endereco", "habilidades", "competencias", "idiomas", "linkedin"]);
 const referenceLine = /\b(refer[eê]ncias?|recomendante|reference)\b/i;
+
+function chooseSummary(text: string): string | null {
+  let paragraph: string[] = [];
+  for (const raw of [...text.split(/\r?\n/), ""]) {
+    const line = raw.replace(/[\t\u00a0 ]+/g, " ").trim();
+    const heading = line.length > 0 && line.length < 80 && /\p{L}/u.test(line) && line === line.toLocaleUpperCase("pt-BR");
+    const boundary = !line || heading || /@|https?:|www\.|linkedin\.com|github\.com/i.test(line) || (line.length < 30 && !/[.!?]$/.test(line)) || /^[•●▪‣*-]\s/.test(line) || /^(?:--\s*)?\d+\s*(?:--)?$/.test(line);
+    if (boundary) {
+      if (paragraph.length > 3) return paragraph.join(" ");
+      paragraph = [];
+    } else paragraph.push(line);
+  }
+  return null;
+}
 
 function chooseName(lines: string[]): string | null {
   const candidates = lines.slice(0, 12).flatMap((line, index) => {
@@ -34,10 +48,10 @@ export function extractFields(text: string): ExtractionResult {
       if ([8, 9, 10, 11, 12, 13].includes(digits.length) && !phones.some((x) => x.replace(/\D/g, "") === digits)) phones.push(value);
     }
   }
-  const data: Fields = { name: chooseName(candidateLines), email: emails.length === 1 ? emails[0] : null, phone: phones.length === 1 ? phones[0] : null };
+  const data: Fields = { name: chooseName(candidateLines), email: emails.length === 1 ? emails[0] : null, phone: phones.length === 1 ? phones[0] : null, professionalSummary: chooseSummary(text) };
   const warnings: string[] = [];
   if (emails.length > 1) warnings.push("AMBIGUOUS_EMAIL");
   if (phones.length > 1) warnings.push("AMBIGUOUS_PHONE");
-  if (!data.name && !data.email && !data.phone) warnings.push("NO_FIELDS_IDENTIFIED");
+  if (!data.name && !data.email && !data.phone && !data.professionalSummary) warnings.push("NO_FIELDS_IDENTIFIED");
   return { data, warnings, extraction: { status: data.name && data.email && data.phone ? "success" : "partial", method: "text-rules" } };
 }
