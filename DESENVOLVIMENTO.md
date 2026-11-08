@@ -70,6 +70,18 @@ Implementado em localhost:3000, seguindo o wireframe e mantendo azul-marinho com
 
 ## Tomada de decisões técnicas e seus motivos
 
+### Decisão - Subir tudo em um docker
+
+Para simplificar a inicialização e a configuração do projeto, optei por utilizar o **Docker Compose**, centralizando a execução da aplicação em um ambiente conteinerizado, composto por cinco serviços:
+
+- **sqlserver:** responsável pela inicialização do banco de dados SQL Server.
+- **database-setup:** responsável pela configuração inicial e criação das estruturas necessárias do banco de dados.
+- **migrations:** responsável pela execução automática das migrations, garantindo que o banco esteja atualizado.
+- **backend:** responsável pela execução da API e das regras de negócio da aplicação.
+- **frontend:** responsável pela execução da interface da aplicação.
+
+Essa abordagem facilita a configuração do ambiente de desenvolvimento, automatiza etapas de inicialização e reduz a necessidade de configurações manuais, proporcionando maior praticidade e consistência na execução do projeto. o serviço de database-setup e migrations não precisam estar up toda hora, é esperado que eles iniciem, realizem seu trabalho e desliguem sozinhos.
+
 ### Leitura de currículos em PDF - uso de rejex + heurísticas
 
 Para a identificação dos dados presentes nos currículos, optei por uma abordagem determinística, utilizando expressões regulares (Regex) e heurísticas, sem a necessidade de modelos de inteligência artificial generativa.
