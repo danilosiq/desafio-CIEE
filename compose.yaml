@@ -22,6 +22,50 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+  database-setup:
+    image: mcr.microsoft.com/mssql/server:2025-latest
+    environment:
+      <<: *sql-environment
+      MSSQL_DATABASE: ${MSSQL_DATABASE:-ciee}
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        if [[ ! "$$MSSQL_DATABASE" =~ ^[a-zA-Z][a-zA-Z0-9_]{0,62}$$ ]]; then
+          echo 'MSSQL_DATABASE deve começar com letra e conter apenas letras, números ou sublinhado.' >&2
+          exit 1
+        fi
+        SQLCMDPASSWORD="$$MSSQL_SA_PASSWORD" /opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -C -b -Q "IF DB_ID(N'$$MSSQL_DATABASE') IS NULL CREATE DATABASE [$$MSSQL_DATABASE]"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    restart: "no"
+
+  migrations:
+    image: desafio-ciee-migrations:local
+    build:
+      context: ./backend
+      target: migrations
+    environment:
+      DATABASE_URL: "sqlserver://sqlserver:1433;database=${MSSQL_DATABASE:-ciee};user=sa;password=${MSSQL_SA_PASSWORD:?Configure MSSQL_SA_PASSWORD};encrypt=true;trustServerCertificate=true"
+    depends_on:
+      database-setup:
+        condition: service_completed_successfully
+    restart: "no"
+
+  seed:
+    image: desafio-ciee-migrations:local
+    build:
+      context: ./backend
+      target: migrations
+    entrypoint: ["npm", "run", "seed"]
+    environment:
+      DATABASE_URL: "sqlserver://sqlserver:1433;database=${MSSQL_DATABASE:-ciee};user=sa;password=${MSSQL_SA_PASSWORD:?Configure MSSQL_SA_PASSWORD};encrypt=true;trustServerCertificate=true"
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    profiles: ["seed"]
+    restart: "no"
+
   backend:
     container_name: backend
     image: desafio-ciee-backend:local
@@ -45,8 +89,8 @@ services:
       retries: 12
       start_period: 10s
     depends_on:
-      sqlserver:
-        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
     init: true
     restart: unless-stopped
   

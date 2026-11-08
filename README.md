@@ -4,52 +4,41 @@ Aplicação para cadastrar e consultar candidatos por meio de um formulário man
 
 ## Tecnologias
 
-| Tecnologia | Versão |
-| --- | --- |
-| Node.js | 24.22.2 |
-| npm | 11.6.2 |
-| Next.js | 16.4.5 |
-| React / React DOM | 19.3.1 |
-| TypeScript | 5.9.3 |
-| Express | 5.3.0 |
-| Prisma / adaptador SQL Server | 7.10.1 |
-| SQL Server | 2025 |
-| pdf-parse | 2.4.5 |
-| Multer | 2.5.0 |
-| Jest | 30.5.2 |
-| Playwright | 1.65.0 |
+| Tecnologia                    | Versão  |
+| ----------------------------- | ------- |
+| Node.js                       | 24.22.2 |
+| npm                           | 11.6.2  |
+| Next.js                       | 16.4.5  |
+| React / React DOM             | 19.3.1  |
+| TypeScript                    | 5.9.3   |
+| Express                       | 5.3.0   |
+| Prisma / adaptador SQL Server | 7.10.1  |
+| SQL Server                    | 2025    |
+| pdf-parse                     | 2.4.5   |
+| Multer                        | 2.5.0   |
+| Jest                          | 30.5.2  |
+| Playwright                    | 1.65.0  |
 
 ## Preparação
 
-São necessários Node.js e npm nas versões indicadas, Docker com Compose e espaço disponível para a imagem e os dados do SQL Server. Os exemplos abaixo usam a porta `1433` e o banco `ciee`.
+São necessários Docker com Compose e espaço disponível para a imagem e os dados do SQL Server. Os exemplos abaixo usam a porta `1433` e o banco `ciee`.
 
 1. Copie `backend/.env.docker.example` para `backend/.env.docker`, defina uma senha local forte e mantenha esse arquivo fora do controle de versão.
-2. Copie `backend/.env.example` para `backend/.env` e configure `DATABASE_URL` com a mesma senha, o banco `ciee` e a porta do SQL Server. A conexão local usa `localhost`; dentro do Compose, o backend acessa `sqlserver`.
-3. Na raiz do repositório, inicie o banco:
-
-```sh
-docker compose --env-file backend/.env.docker up -d sqlserver
-```
-
-4. Crie o banco `ciee` se ele ainda não existir, usando a senha já disponível no container:
-
-```sh
-docker compose --env-file backend/.env.docker exec -T sqlserver /bin/bash -c 'SQLCMDPASSWORD="$MSSQL_SA_PASSWORD" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -C -b -Q "IF DB_ID(N'\''ciee'\'') IS NULL CREATE DATABASE [ciee]"'
-```
-
-5. Com o banco disponível, instale as dependências e aplique as migrations:
-
-```sh
-cd backend
-npm ci
-npm run migrate:deploy
-```
-
-A seed é opcional: `npm run seed` garante as áreas e os candidatos fictícios sem apagar registros existentes. De volta à raiz, construa e inicie a aplicação:
+2. Na raiz do repositório, construa e inicie a aplicação:
 
 ```sh
 docker compose --env-file backend/.env.docker up -d --build
 ```
+
+O Docker cria o banco se necessário e aplica as migrations antes de iniciar o backend. Os serviços `database-setup` e `migrations` terminam após concluir o trabalho; isso é esperado.
+
+Para inserir os 60 candidatos e as 30 áreas fictícias, execute a seed opcional na raiz do projeto:
+
+```sh
+docker compose --env-file backend/.env.docker run --rm seed
+```
+
+A seed pode ser executada novamente e preserva registros existentes. A aplicação deve ter sido construída com `up -d --build` antes do comando.
 
 O frontend fica em [http://localhost:3000](http://localhost:3000), a API em [http://localhost:3333](http://localhost:3333) e o Swagger em [http://localhost:3333/docs/](http://localhost:3333/docs/). O volume `sqlserver-data` guarda os dados do banco. `docker compose down` para os containers; não use `down -v` se quiser preservá-los.
 
@@ -65,7 +54,7 @@ O limite do arquivo é **5 MiB (5.242.880 bytes)**. A extração usa `PDF_MAX_PA
 
 ## Testes
 
-Com as dependências instaladas, os scripts disponíveis incluem:
+Com as dependências instaladas (caso não estejam instaladas, rode `npm install` no backend), os scripts disponíveis incluem:
 
 ```sh
 cd backend
@@ -99,7 +88,3 @@ Para os testes de navegador, instale o Chromium (`npx playwright install chromiu
 cd frontend
 E2E_BASE_URL=http://127.0.0.1:3103 E2E_API_URL=http://127.0.0.1:3335 E2E_TEST_DATABASE=ciee_test npm run test:e2e
 ```
-
-## Uso de IA no desenvolvimento
-
-O Codex auxiliou na análise, implementação e revisão do projeto. As regras de extração do produto são determinísticas e não enviam documentos a serviços externos. A pessoa responsável deve conferir os resultados e as limitações dos testes antes de apresentar a aplicação.

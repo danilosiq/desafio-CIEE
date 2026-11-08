@@ -1,0 +1,75 @@
+name: Fullcheck
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  fullcheck:
+    name: Fullcheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2025-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_PID: Developer
+          MSSQL_SA_PASSWORD: "CI-only_StrongPassword2026!"
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "SQLCMDPASSWORD='CI-only_StrongPassword2026!' /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -C -b -Q 'SELECT 1' -o /dev/null"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 30
+          --health-start-period 30s
+    env:
+      DATABASE_URL: "sqlserver://127.0.0.1:1433;database=ciee_test;user=sa;password=CI-only_StrongPassword2026!;encrypt=true;trustServerCertificate=true"
+      NODE_ENV: test
+      NODE_OPTIONS: --experimental-vm-modules
+      NEXT_PUBLIC_API_URL: http://127.0.0.1:3335
+      FRONTEND_TEST_DATABASE: ciee_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: backend/.nvmrc
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+      - name: Instalar dependências do backend
+        working-directory: backend
+        run: npm ci
+      - name: Criar banco isolado
+        env:
+          SQL_CONTAINER: ${{ job.services.sqlserver.id }}
+        run: >-
+          docker exec "$SQL_CONTAINER" /bin/bash -c
+          'SQLCMDPASSWORD="$MSSQL_SA_PASSWORD" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -C -b -Q "CREATE DATABASE [ciee_test]"'
+      - name: Aplicar migrations
+        working-directory: backend
+        run: npm run migrate:deploy
+      - name: Verificar backend
+        working-directory: backend
+        run: npm run check
+      - name: Iniciar API de teste
+        working-directory: backend
+        run: |
+          PORT=3335 node dist/main/Server.js > "$RUNNER_TEMP/ciee-api.log" 2>&1 &
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:3335/resumes?limit=1 > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/ciee-api.log"
+          exit 1
+      - name: Instalar dependências do frontend
+        working-directory: frontend
+        run: npm ci
+      - name: Executar fullcheck do frontend
+        working-directory: frontend
+        run: npm run fullcheck
