@@ -139,7 +139,7 @@ Em testes, foram:
 
 ## Tempo aproximado dedicado ao desafio
 
-O tempo total dedicado ao desafio foi de aproximadamente **12 horas**. Iniciei o desenvolvimento na sexta-feira à noite, estruturando os arquivos `AGENTS.md` e organizando as atividades no Notion. No sábado (07/11), implementei e avaliei a primeira abordagem, utilizando Ollama e Qwen. Após identificar limitações nessa solução, dediquei parte do domingo (08/11) à revisão da arquitetura, à implementação de uma alternativa mais adequada aos requisitos e à correção de problemas identificados.
+O tempo total dedicado ao desafio foi de aproximadamente **10 horas**. Iniciei o desenvolvimento na sexta-feira à noite, estruturando os arquivos `AGENTS.md` e organizando as atividades no Notion. No sábado (07/11), implementei e avaliei a primeira abordagem, utilizando Ollama e Qwen. Após identificar limitações nessa solução, dediquei parte do domingo (08/11) à revisão da arquitetura, à implementação de uma alternativa mais adequada aos requisitos e à correção de problemas identificados.
 
 ## Dificuldades, limitações e melhorias futuras
 
