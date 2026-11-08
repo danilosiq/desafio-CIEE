@@ -17,4 +17,8 @@ export type ScanResult = {
   fullName: string | null;
   email: string | null;
   phone: string | null;
+  conflicts: ("fullName" | "email" | "phone")[];
+  requiresReview: true;
+  model: string;
+  promptVersion: string;
 };

@@ -55,7 +55,18 @@ export function ResumeForm({
     <Column>
       <AnimatedContent contentKey={stepped ? phase : "form"}>
         {stepped && !showFields ? (
-          <Column className="min-h-96 gap-4 px-5 py-6">{upload}</Column>
+          <Column className="min-h-96 gap-4 px-5 py-6">
+            {upload}
+            <Button
+              variant="outline"
+              onClick={() => {
+                form.pickFile(null);
+                setReview(true);
+              }}
+            >
+              Preencher manualmente
+            </Button>
+          </Column>
         ) : (
           <div
             className={
@@ -91,6 +102,25 @@ export function ResumeForm({
                     <ArrowLeft aria-hidden="true" />
                     Voltar ao arquivo
                   </Button>
+                )}
+                {form.scanConflicts.length > 0 && (
+                  <div
+                    role="alert"
+                    className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900"
+                  >
+                    O PDF contém informações conflitantes para{" "}
+                    {form.scanConflicts
+                      .map(
+                        (field) =>
+                          ({
+                            fullName: "nome",
+                            email: "e-mail",
+                            phone: "telefone",
+                          })[field],
+                      )
+                      .join(", ")}
+                    . Confira o documento e preencha os campos.
+                  </div>
                 )}
                 <ResumeFields form={form} />
                 <ResumeSubmitError error={form.submitError} />
