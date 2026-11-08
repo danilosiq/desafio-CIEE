@@ -24,7 +24,7 @@ Aplicação para cadastrar e consultar candidatos por meio de um formulário man
 São necessários Docker com Compose e espaço disponível para a imagem e os dados do SQL Server. Os exemplos abaixo usam a porta `1433` e o banco `ciee`. Será necessário possuir Docker instalado em sua máquina.
 
 1. Realize o clone deste repositório em um ambiente com `git clone https://github.com/danilosiq/desafio-CIEE.git` e entre no terminal do repositório já instalado na sua máquina.
-2. Copie `backend/.env.docker.example` para `backend/.env.docker`, defina uma senha local forte e mantenha esse arquivo fora do controle de versão.
+2. Copie `backend/.env.docker.example` para `backend/.env.docker`, defina uma senha local forte (exemplo: senhaForte123!) e mantenha esse arquivo fora do controle de versão.
 3. Na raiz do repositório, construa e inicie a aplicação:
 
 ```sh
