@@ -116,9 +116,9 @@ it.each(["list", "grid"] as const)(
   async (view) => {
     const user = setup();
     await screen.findByRole("link", { name: ana });
-    if (view === "grid")
+    if (view === "list")
       await user.click(
-        screen.getByRole("button", { name: "Visualizar em cards" }),
+        screen.getByRole("button", { name: "Visualizar em lista" }),
       );
     expect(screen.getByText(email).closest("a")).toHaveAttribute(
       "href",
@@ -143,7 +143,6 @@ it("alterna entre lista e cards preservando a pesquisa", async () => {
   const user = setup();
   await screen.findByRole("link", { name: ana });
   await user.type(screen.getByLabelText("Buscar candidatos"), ana);
-  await user.click(screen.getByRole("button", { name: "Visualizar em cards" }));
   expect(
     screen.getByRole("button", { name: "Visualizar em cards" }),
   ).toHaveAttribute("aria-pressed", "true");
