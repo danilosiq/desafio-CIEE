@@ -41,7 +41,8 @@ export function PdfUpload({
               Preencha automaticamente via PDF
             </Title>
             <Text className="text-xs">
-              Opcional · Revise os dados antes de confirmar.
+              Opcional · PDFs precisam ter texto selecionável. Revise os dados
+              antes de confirmar.
             </Text>
           </Column>
         </Row>
@@ -71,9 +72,7 @@ export function PdfUpload({
             <Title as="h3" className="text-base text-blue-950">
               Lendo seu currículo
             </Title>
-            <Text className="text-sm">
-              Processando o arquivo...
-            </Text>
+            <Text className="text-sm">Processando o arquivo...</Text>
             <Text className="text-xs">
               Aguarde para revisar os dados encontrados.
             </Text>

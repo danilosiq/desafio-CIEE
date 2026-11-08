@@ -71,3 +71,20 @@ it("CA-07: exclusão remove das consultas e excluir inexistente é tratado", asy
   expect(listed.items.some((item) => item.id === saved.id)).toBe(false);
   await expect(resumes.delete(randomUUID())).rejects.toBeInstanceOf(ResumeNotFoundError);
 });
+
+it("persiste vínculo de área, projeta renomeação e impede exclusão enquanto vinculado", async () => {
+  const area = await client.areaOfExpertise.create({ data: { name: `Área ${randomUUID()}`, description: "Fictícia" } });
+  try {
+    const saved = await resumes.create({ fullName: "Pessoa Fictícia", email: email(), areaOfExpertiseId: area.id });
+    ids.push(saved.id);
+    expect(saved).toMatchObject({ areaOfExpertiseId: area.id, areaOfExpertise: area.name });
+    const renamed = await client.areaOfExpertise.update({ where: { id: area.id }, data: { name: `Renomeada ${randomUUID()}` } });
+    expect(await resumes.findById(saved.id)).toMatchObject({ areaOfExpertiseId: area.id, areaOfExpertise: renamed.name });
+    await expect(client.areaOfExpertise.delete({ where: { id: area.id } })).rejects.toBeDefined();
+    await resumes.update(saved.id, { fullName: saved.fullName, email: saved.email, areaOfExpertiseId: null, areaOfExpertise: "Outra" });
+    expect(await resumes.findById(saved.id)).toMatchObject({ areaOfExpertiseId: null, areaOfExpertise: "Outra" });
+  } finally {
+    await client.resume.updateMany({ where: { areaOfExpertiseId: area.id }, data: { areaOfExpertiseId: null } });
+    await client.areaOfExpertise.delete({ where: { id: area.id } });
+  }
+});

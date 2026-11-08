@@ -1,4 +1,5 @@
 import { api } from "./Api";
+import { normalizeResume, type ApiResume } from "./ResumeMapper";
 import type { Resume, ResumeInput, ScanResult } from "@/core/types/Resume";
 
 export type ResumeListPage = {
@@ -9,7 +10,8 @@ export type ResumeListPage = {
   totalPages: number;
 };
 
-type ResumeListResponse = ResumeListPage | Resume[];
+type ResumeListResponse =
+  (Omit<ResumeListPage, "items"> & { items: ApiResume[] }) | ApiResume[];
 
 export async function listResumes({
   page = 1,
@@ -19,18 +21,24 @@ export async function listResumes({
     await api.get<ResumeListResponse>("/resumes", { params: { page, limit } })
   ).data;
   if (Array.isArray(data))
-    return { items: data, page, limit, total: data.length, totalPages: 1 };
-  return data;
+    return {
+      items: data.map(normalizeResume),
+      page,
+      limit,
+      total: data.length,
+      totalPages: 1,
+    };
+  return { ...data, items: data.items.map(normalizeResume) };
 }
 export async function getResume({ id }: { id: string }): Promise<Resume> {
-  return (await api.get<Resume>(`/resumes/${id}`)).data;
+  return normalizeResume((await api.get<ApiResume>(`/resumes/${id}`)).data);
 }
 export async function createResume({
   data,
 }: {
   data: ResumeInput;
 }): Promise<Resume> {
-  return (await api.post<Resume>("/resumes", data)).data;
+  return normalizeResume((await api.post<ApiResume>("/resumes", data)).data);
 }
 export async function updateResume({
   id,
@@ -39,16 +47,20 @@ export async function updateResume({
   id: string;
   data: ResumeInput;
 }): Promise<Resume> {
-  return (await api.put<Resume>(`/resumes/${id}`, data)).data;
+  return normalizeResume(
+    (await api.put<ApiResume>(`/resumes/${id}`, data)).data,
+  );
 }
 export async function scanResume({
   file,
+  signal,
 }: {
   file: File;
+  signal?: AbortSignal;
 }): Promise<ScanResult> {
   const data = new FormData();
   data.append("file", file);
-  return (await api.post<ScanResult>("/scan", data)).data;
+  return (await api.post<ScanResult>("/scan", data, { signal })).data;
 }
 
 export async function deleteResume({ id }: { id: string }): Promise<void> {

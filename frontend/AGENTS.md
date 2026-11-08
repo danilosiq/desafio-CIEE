@@ -601,25 +601,16 @@ Objetivo: Garantir instalações e comandos consistentes em todas as máquinas.
 
 #### Regras gerais
 
-- Utilizar obrigatoriamente Yarn para instalar dependências, executar scripts e
-  rodar testes. Não utilizar npm, npx, pnpm ou Bun neste repositório.
-- Usar a versão exata declarada em `packageManager` no `package.json`, por meio
-  do Corepack. Ativar com `corepack enable` após selecionar o Node da `.nvmrc`.
-- Versionar somente `yarn.lock` como lockfile. Não criar `package-lock.json`,
-  `npm-shrinkwrap.json`, `pnpm-lock.yaml`, `bun.lock` ou `bun.lockb`.
-- Após clonar e em verificações automatizadas, executar `yarn install --immutable`
-  para garantir que a instalação não altere o lockfile.
-- Adicionar pacotes com `yarn add` ou `yarn add -D`; remover com `yarn remove`.
-- Executar ferramentas locais com `yarn exec` ou scripts do projeto.
-- Manter `nodeLinker: node-modules` em `.yarnrc.yml`.
-- Manter os testes da política de npm junto da suíte Jest. Toda entrega deve
-  passar por `yarn fullcheck`, incluindo a validação do gerenciador de pacotes.
-- Os nomes reservados `package.json`, `yarn.lock` e `.yarnrc.yml` são exceções
-  à nomenclatura PascalCase, assim como os arquivos reservados do framework.
+- Utilizar npm para instalar dependências, executar scripts e rodar testes.
+- Usar a versão declarada em `packageManager` e a versão do Node em `.nvmrc`.
+- Versionar `package-lock.json` como lockfile e executar `npm ci` para instalação reproduzível.
+- Executar ferramentas locais por scripts npm ou `npm exec`.
+- Manter os testes da política de npm junto da suíte Jest e executar `npm run fullcheck` nas verificações da entrega.
+- Os nomes reservados `package.json`, `package-lock.json` e `.npmrc` são exceções à nomenclatura PascalCase, assim como os arquivos reservados do framework.
 
 ---
 
-## Git, branches e CI/CD
+## Git e branches
 
 - É proibido desenvolver ou realizar commits diretamente na `main`, salvo permissão explícita do usuário para a tarefa em questão. Solicitar uma implementação não constitui essa permissão.
 - Utilizar `dev` como base de integração e criar as branches de trabalho a partir dela. Não desenvolver diretamente na `dev`.
@@ -627,6 +618,5 @@ Objetivo: Garantir instalações e comandos consistentes em todas as máquinas.
 - Conferir a branch atual e as alterações locais. Reutilizar uma branch da tarefa já criada a partir de `dev` quando apropriado; não criar outra sem necessidade.
 - Ao criar uma branch, sincronizar a base `dev` com a origem existente por fast-forward quando possível e criar a branch com o nome informado. Não descartar alterações locais, executar reset destrutivo ou sobrescrever branches para forçar essa preparação.
 - Se o repositório, a branch `dev` ou a origem necessária não estiver disponível, informar o impedimento; não usar `main` silenciosamente como base alternativa.
-- CI e CD fazem parte da entrega do projeto para sustentar o fluxo entre branches de trabalho, `dev` e `main`, com verificações automatizadas e promoção controlada entre os ambientes definidos.
 - Mudanças em instruções ou skills não autorizam, por si só, commit, push, merge ou deploy. Seguir a autorização da tarefa para essas ações.
 

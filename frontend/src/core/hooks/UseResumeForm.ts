@@ -8,12 +8,14 @@ import {
   resumeFormSchema,
   validatePdf,
 } from "@/core/lib/ResumeValidation";
+import { selectScanSuggestions } from "@/core/lib/SelectScanSuggestions";
 import { getApiError } from "@/core/lib/ApiError";
 import { useSaveResume, useScanResume } from "./UseResumes";
 import type {
   Resume,
   ResumeErrors,
   ResumeFormValues,
+  ScanResult,
 } from "@/core/types/Resume";
 type UseResumeFormProps = {
   initial?: Resume;
@@ -25,10 +27,13 @@ export function useResumeForm({ initial, onSaved }: UseResumeFormProps) {
         fullName: initial.fullName,
         email: initial.email,
         phone: formatPhone(initial.phone),
-        areaOfExpertise: initial.areaOfExpertiseId ? "" : initial.areaOfExpertise,
+        areaOfExpertise: initial.areaOfExpertiseId
+          ? ""
+          : initial.areaOfExpertise,
         areaOfExpertiseId: initial.areaOfExpertiseId ?? null,
         areaChoice:
-          initial.areaOfExpertiseId ?? (initial.areaOfExpertise ? "__other" : ""),
+          initial.areaOfExpertiseId ??
+          (initial.areaOfExpertise ? "__other" : ""),
         professionalSummary: initial.professionalSummary,
       }
     : { ...EMPTY_RESUME, areaOfExpertiseId: null, areaChoice: "" };
@@ -41,8 +46,8 @@ export function useResumeForm({ initial, onSaved }: UseResumeFormProps) {
   const {
     register,
     watch,
+    getValues,
     setValue,
-    getFieldState,
     handleSubmit,
     reset,
     formState,
@@ -61,16 +66,29 @@ export function useResumeForm({ initial, onSaved }: UseResumeFormProps) {
   } | null>(null);
   const [saved, setSaved] = useState(false);
   const generation = useRef(0);
+  const scanController = useRef<AbortController | null>(null);
+  const editedFields = useRef(
+    new Set<keyof ResumeFormValues>(
+      initial
+        ? (["fullName", "email", "phone"] as const).filter(
+            (name) => !!initial[name],
+          )
+        : [],
+    ),
+  );
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   useEffect(
     () => () => {
       generation.current++;
+      scanController.current?.abort();
     },
     [],
   );
   const save = useSaveResume(initial?.id);
   const scan = useScanResume();
   function change(name: keyof ResumeFormValues, value: string) {
+    editedFields.current.add(name);
     setValue(name, name === "phone" ? formatPhone(value) : value, {
       shouldDirty: true,
       shouldTouch: true,
@@ -92,6 +110,9 @@ export function useResumeForm({ initial, onSaved }: UseResumeFormProps) {
   }
   function pickFile(next: File | null) {
     generation.current++;
+    scanController.current?.abort();
+    scanController.current = null;
+    setScanResult(null);
     setIsScanning(false);
     setFile(next);
     setFileError(next ? (validatePdf(next) ?? "") : "");
@@ -104,18 +125,32 @@ export function useResumeForm({ initial, onSaved }: UseResumeFormProps) {
       return false;
     }
     const ticket = ++generation.current;
+    scanController.current?.abort();
+    const controller = new AbortController();
+    scanController.current = controller;
+    setScanResult(null);
     setIsScanning(true);
     setFileError("");
     try {
-      const result = await scan.mutateAsync({ file });
+      const result = await scan.mutateAsync({
+        file,
+        signal: controller.signal,
+      });
       if (ticket !== generation.current) return false;
+      setScanResult(result);
+      const suggestions = selectScanSuggestions(
+        result,
+        editedFields.current,
+        getValues(),
+      );
       for (const name of ["fullName", "email", "phone"] as const) {
-        if (!getFieldState(name).isDirty && result[name])
-          setValue(
-            name,
-            name === "phone" ? formatPhone(result[name]!) : result[name]!,
-            { shouldValidate: formState.isSubmitted },
-          );
+        if (suggestions[name]) {
+          const value =
+            name === "phone"
+              ? formatPhone(suggestions[name]!)
+              : suggestions[name]!;
+          setValue(name, value, { shouldValidate: formState.isSubmitted });
+        }
       }
       return true;
     } catch (error) {
@@ -123,11 +158,18 @@ export function useResumeForm({ initial, onSaved }: UseResumeFormProps) {
         setFileError(getApiError(error).message);
       return false;
     } finally {
-      if (ticket === generation.current) setIsScanning(false);
+      if (ticket === generation.current) {
+        scanController.current = null;
+        setIsScanning(false);
+      }
     }
   }
   const submit = handleSubmit(async (data) => {
     setSubmitError(null);
+    generation.current++;
+    scanController.current?.abort();
+    scanController.current = null;
+    setIsScanning(false);
     try {
       const { areaChoice, ...input } = data;
       const result = await save.mutateAsync({
@@ -143,11 +185,13 @@ export function useResumeForm({ initial, onSaved }: UseResumeFormProps) {
     }
   });
   function resetForm() {
+    editedFields.current.clear();
     reset(defaults);
     setSubmitError(null);
     setSaved(false);
   }
   function clearForm() {
+    editedFields.current.clear();
     reset({ ...EMPTY_RESUME, areaOfExpertiseId: null, areaChoice: "" });
     setSubmitError(null);
     setSaved(false);
@@ -163,6 +207,7 @@ export function useResumeForm({ initial, onSaved }: UseResumeFormProps) {
     chooseArea,
     file,
     fileError,
+    scanResult,
     pickFile,
     extract,
     isScanning,

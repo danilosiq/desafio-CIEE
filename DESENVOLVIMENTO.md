@@ -29,44 +29,11 @@ E no notion foi criado uma base dados, em formato de tabela, no qual possuia o t
 
 ### Execução do trabalho - Uso de Spec driven + skill propria
 
-## Principais decições
+## Leitura de currículos em PDF
 
-Nesta seção, falarei um pouco mais de como a IA me ajudou a fazer algumas tomadas de decisões e descobertas para soluções
+O cadastro aceita preenchimento manual ou sugestões obtidas a partir de texto selecionável em um PDF. O backend recebe o arquivo em memória, valida tamanho e conteúdo e extrai texto com `pdf-parse`. Regras determinísticas identificam possíveis nome, e-mail e telefone; campos ausentes ou ambíguos permanecem `null` e devem ser revisados pela pessoa antes do envio ao CRUD. A leitura não cria nem altera candidatos.
 
-### Uso de Ollama + Qwen para a leitura de PDFs
-
-A solução escolhida é executar o modelo `qwen2.5vl:7b` localmente pelo Ollama, integrado ao backend Node.js. O Ollama gerencia e executa o modelo; o Qwen, por ser um modelo de visão e linguagem, interpreta as imagens das páginas e identifica os dados solicitados.
-
-O objetivo é reconhecer nome completo, e-mail e telefone para preencher o formulário, sempre permitindo revisão e correção antes de salvar. As capacidades de interpretação visual e extração estruturada estão descritas na [página oficial do modelo no Ollama](https://ollama.com/library/qwen2.5vl:7b). Isso fundamenta a escolha.
-
-#### Fluxo planejado
-
-1. O usuário envia um PDF para auxiliar o preenchimento.
-2. O backend valida o limite de 5 MB e o conteúdo do arquivo antes do processamento.
-3. O PDF.js (`pdfjs-dist`), com `@napi-rs/canvas`, renderiza as páginas do PDF em imagens no backend Node.js. As imagens podem ser mantidas em memória durante o processamento; se houver arquivos temporários, devem ser removidos ao final. Converter o PDF não é responsabilidade do Qwen. A escolha segue o [exemplo oficial de conversão para PNG no Node.js](https://github.com/mozilla/pdf.js/blob/master/examples/node/pdf2png/pdf2png.mjs), sem exigir uma API Python adicional.
-4. Um provider de infraestrutura envia as imagens e as instruções ao Ollama local, que executa o `qwen2.5vl:7b`. A API de visão recebe imagens junto do texto da solicitação, conforme a [documentação oficial](https://docs.ollama.com/capabilities/vision).
-5. O modelo recebe um prompt mantido em arquivo próprio e um schema JSON com os campos esperados. As instruções devem exigir dados presentes no documento e `null` para informações não identificadas, sem inventar valores. O Ollama oferece [saídas estruturadas por schema](https://docs.ollama.com/capabilities/structured-outputs); o backend ainda deve validar a resposta e os valores extraídos.
-6. O frontend recebe os campos para preencher o mesmo formulário utilizado no cadastro manual. A leitura não salva nem atualiza candidatos automaticamente.
-7. Depois da revisão e confirmação do usuário, o backend aplica as regras de cadastro e persiste os dados no SQL Server. E-mails duplicados devem ser bloqueados, e o frontend deve oferecer a atualização do candidato existente por uma ação explícita.
-8. O PDF e as imagens temporárias são descartados ao término do processamento, inclusive em caso de erro. Falhas de leitura não impedem o cadastro manual.
-
-#### Motivos e benefícios
-
-A integração direta com Node.js evita desenvolver, configurar e manter uma API Python adicional. Ainda existe uma dependência operacional: o Ollama precisa estar instalado, em execução e com o modelo baixado. A inicialização deve verificar essas condições e apresentar mensagens claras, preservando o funcionamento do cadastro manual quando a leitura estiver indisponível.
-
-A execução local mantém o processamento dos currículos na infraestrutura controlada pelo projeto e dispensa uma API externa paga por token ou com cota de requisições. Isso não significa custo operacional zero: continuam existindo consumo de memória, processamento, energia e armazenamento do modelo.
-
-Usar o Qwen para reconhecer e interpretar os campos reduz a quantidade de integrações nesta abordagem, mas não elimina possíveis erros de leitura ou interpretação.
-
-O isolamento em um provider mantém Express, use cases e persistência independentes da forma de inferência. O prompt fica separado do código para facilitar revisão, versionamento e comparação de resultados, enquanto a resposta estruturada permite um contrato consistente com o formulário.
-
-#### Escalabilidade e limites
-
-A separação entre o backend e a inferência permite evoluir a capacidade de processamento de forma independente. Se houver aumento de demanda, será possível avaliar controle de concorrência, filas e outras instâncias de inferência, com distribuição de requisições, sem mover regras de cadastro para o modelo. Essas são possibilidades futuras, não funcionalidades já implementadas.
-
-O Ollama oferece configurações de paralelismo e fila, mas a quantidade de requisições simultâneas depende da memória disponível e do contexto de cada requisição. Aumentar a concorrência não garante maior desempenho e pode elevar o consumo de memória. A [documentação operacional do Ollama](https://docs.ollama.com/faq) serve de referência para esses ajustes.
-
-O processamento local não possui uma franquia de tokens de uma API hospedada. Há, porém, limite de contexto por requisição, consumo de recursos pelas imagens e tempo de execução. PDFs com várias páginas exigirão uma estratégia de processamento e consolidação que preserve os dados relevantes, a ser validada na implementação.
+Os limites de páginas, tempo e concorrência são configuráveis. PDFs compostos somente por imagens não fornecem texto selecionável e recebem uma mensagem para continuar manualmente. A heurística de nome pode falhar em nomes de uma palavra, colunas ou cabeçalhos pouco convencionais; o resultado não é uma garantia semântica.
 
 ## Implementação do frontend com mocks
 
@@ -82,7 +49,7 @@ As rotas do Next.js encaminham para as páginas em `src/core/pages`. Services Ax
 
 O Codex ajudou a consolidar a spec do Notion, escrever os testes antes do comportamento, implementar as telas e verificar a aplicação. Exemplos de orientações aproveitadas foram usar a skill `danilosiq-spec-driven`, manter os mocks isolados, usar Jest com arquivos `.spec.ts`, permitir cadastro após falha de leitura e adotar azul-marinho em tema claro.
 
-As instruções e respostas foram incorporadas ao escopo do card; a integração com backend, SQL Server e Ollama permaneceu fora desta entrega. Nenhuma inferência de modelo foi executada para ler currículos: as sugestões do PDF são fixtures. A identificação exata do modelo utilizado pelo Codex nesta sessão não foi exposta ao projeto; não foi presumida ou registrada como se estivesse confirmada.
+As instruções e respostas foram incorporadas ao escopo do card; a integração com backend e SQL Server permaneceu fora desta entrega. As sugestões do PDF nessa etapa eram dados fictícios. A identificação exata do modelo utilizado pelo Codex nesta sessão não foi exposta ao projeto; não foi presumida ou registrada como se estivesse confirmada.
 
 Na revisão, foram ajustados tipos de consultas dos testes, separada a tabela de candidatos em componente próprio, removida uma verificação redundante e desativada a geração automática de regras do Next.js para preservar o AGENTS.md do autor. A política de npm foi incluída na suíte Jest. Os campos editados manualmente são preservados diante de sugestões do PDF e respostas antigas não são aplicadas após a troca ou remoção do arquivo.
 
@@ -192,7 +159,7 @@ As operações simuladas usam `/areas-of-expertise` no adapter, incluindo consul
 
 **TDD e regressão:** os testes iniciais falharam para os acessos ausentes, catálogo inexistente e validação condicional de Outros. A suíte cobre criação/consulta/edição/exclusão, bloqueio com vínculos, renomeação projetada no candidato, ausência de inclusão automática para Outros, estados vazio/erro e preservação do formulário após falha. O navegador integrado conferiu os acessos, a página desktop, o bloqueio de exclusão e o cadastro em bottom sheet.
 
-**Escopo e limites:** frontend com dados fictícios em localStorage e fallback em memória, sem backend, SQL Server ou Ollama reais. Branch reutilizada: `front-end(feat)-mocks`, originada de `dev`. Sem commit, push ou deploy. Não foi alterado o checkout do backend.
+**Escopo e limites:** frontend com dados fictícios em localStorage e fallback em memória, sem backend ou SQL Server reais. Branch reutilizada: `front-end(feat)-mocks`, originada de `dev`. Sem commit, push ou deploy. Não foi alterado o checkout do backend.
 
 **Validação final do catálogo:** 59 testes de componentes/regras aprovados, incluindo preservação de nome e descrição após erro de operação. `npm run fullcheck` passou para o código de produção deste incremento (arquitetura, formatação, tipos, testes com cobertura e build). Após acrescentar a regressão de erro, a suíte completa e o TypeScript passaram novamente. Os 28 E2E passaram, cobrindo navegação pelo header/footer em desktop e celular, CRUD completo, consulta de detalhes, cancelamento, bloqueio com vínculos, desvinculação e exclusão posterior, renomeação refletida no candidato e em seletores, restauração após reload, Outros manual e no PDF e cadastro de área por bottom sheet. O carregamento das opções é aguardado antes de conferir a seleção restaurada. A rotina E2E agora aguarda o encerramento do servidor que ela iniciou.
 
@@ -206,7 +173,7 @@ Capturas deste incremento: `frontend/test-results/AreasDesktop.png`, `AreasMobil
 
 **TDD e implementação:** regressões falharam pela ausência do link de edição, ausência da opção selecionada, preenchimento indevido de Outros e fechamento da sessão nova. O teste de concorrência confere o estado aberto do dialog após concluir a gravação anterior. O erro de submissão agora é compartilhado entre criação e edição; a área original é metadado separado do texto livre; a sessão da gravação é conferida antes de fechar o formulário. O teste da troca para Outros aguarda o seletor ficar habilitado para exercitar a interação efetiva.
 
-**Instalação:** foi encontrado um lockfile lockfile npm anterior incompatível com o npm 11.6.2 declarado e um package-lock residual. O lockfile foi regenerado com o Yarn do projeto, mantendo a configuração original; o package-lock foi retirado com cópia em `/tmp/ciee-frontend-package-lock-before-yarn.json`. A instalação imutável passou. Não foram adicionadas dependências.
+**Instalação:** a instalação das dependências foi verificada nessa revisão. Não foram adicionadas dependências.
 
 **Escopo:** mesma branch `front-end(feat)-mocks`, baseada em `dev`, sem commit, push ou deploy. Nenhuma rota de API real foi criada ou alterada; Swagger não se aplica ao adaptador de mocks. A integração com backend permanece nos cards próprios.
 
@@ -218,16 +185,12 @@ A instalação havia deixado novamente um lockfile lockfile npm anterior e packa
 
 Validação da correção de dependências: instalação `npm ci` aprovada; auditoria recursiva sem alertas; `npm run fullcheck` aprovado com 63 testes, tipos, arquitetura, formatação e build; 30 E2E aprovados em 95,516 s. `npm run format:check` e `git diff --check` passaram. Sem alterações de rotas de API, commits ou push.
 
-### Extração visual de currículos
-
-O prompt `ExtractResumeV1` orienta o modelo local `qwen2.5vl:7b` a sugerir somente nome, e-mail e telefone visíveis, usando `null` para campos ausentes. O contrato retorna a versão do prompt e a identificação do modelo junto da sugestão, sem registrar dados pessoais em logs nem persistir o resultado. A validação de formato não prova fidelidade ao documento nem garante resistência absoluta a instruções maliciosas; a revisão humana é obrigatória. A conversão PDF-imagem e a avaliação visual com o modelo real dependem das próximas etapas e de recursos suficientes para executar a inferência.
-
 ### Recebimento e renderização de PDF
 
 O endpoint `/pdf/render` recebe um PDF multipart de até 5 MiB, valida seu conteúdo e renderiza todas as páginas em ordem com PDF.js e `@napi-rs/canvas`. Arquivo e imagens permanecem em memória, sem arquivos temporários nem persistência. A resolução é configurada por `PDF_RENDER_SCALE`. A resposta reúne as páginas em memória, portanto PDFs extensos podem aumentar o uso de recursos; falhas de renderização são reportadas sem retornar páginas parciais.
 
-### Orquestração da leitura de PDF
+### Leitura e apresentação de sugestões
 
-`POST /scan` recebe um PDF de até 5 MiB, renderiza as páginas em ordem e envia cada imagem ao provider Ollama, sem persistir candidatos ou arquivos. Nome e e-mail são comparados sem diferenças de caixa e espaços; telefones, pelos dígitos. Valores incompatíveis resultam em campo `null` e nome na lista `conflicts`; os demais são sugestões sujeitas a revisão. A gravação e a regra de e-mail duplicado continuam no CRUD.
+A operação `POST /scan` recebe um PDF em `multipart/form-data`, valida o conteúdo e sugere nome, e-mail e telefone a partir do texto selecionável. A resposta indica os campos identificados ou ausentes e exige revisão; o cadastro e a regra de e-mail duplicado permanecem no CRUD. O backend não armazena o PDF nem o texto como parte do cadastro.
 
-Com PDF fictício de duas páginas, os testes comprovaram o tratamento de arquivo inválido, limite de tamanho e runtime de inferência indisponível. No banco de teste isolado, a falha de inferência não criou candidato; o cadastro manual posterior funcionou e o e-mail duplicado retornou conflito sem alteração automática. Os testes também verificaram a consolidação de sugestões fictícias, inclusive campos ausentes e conflitantes. A extração visual com o modelo real e o fluxo completo no navegador ainda não foram comprovados: no Mac de 8 GB, o carregamento do modelo demorou e foi interrompido por pressão de memória. A integração do navegador permanece em card próprio da Sprint 1.
+A precisão depende do texto incorporado e do layout do documento. PDFs digitalizados como imagens não são reconhecidos pelo parser textual. A interface mantém o preenchimento manual para falhas, campos ausentes e revisão de sugestões.

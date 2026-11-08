@@ -3,6 +3,7 @@ export type ResumeInput = {
     email: string;
     phone?: string | null;
     areaOfExpertise?: string | null;
+    areaOfExpertiseId?: string | null;
     professionalSummary?: string | null;
 };
 export type ResumeData = {
@@ -11,6 +12,7 @@ export type ResumeData = {
     email: string;
     phone: string | null;
     areaOfExpertise: string | null;
+    areaOfExpertiseId?: string | null;
     professionalSummary: string | null;
     createdAt: Date;
     updatedAt: Date;

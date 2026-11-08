@@ -14,6 +14,8 @@ model Resume {
   email               String   @unique @db.NVarChar(320)
   phone               String?  @db.NVarChar(50)
   areaOfExpertise     String?  @db.NVarChar(200)
+  areaOfExpertiseId   String?  @db.UniqueIdentifier
+  area                AreaOfExpertise? @relation(fields: [areaOfExpertiseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   professionalSummary String?  @db.NVarChar(Max)
   createdAt           DateTime @default(now()) @db.DateTime2
   updatedAt           DateTime @updatedAt @db.DateTime2
@@ -30,6 +32,7 @@ model AreaOfExpertise {
   id          String   @id @default(uuid()) @db.UniqueIdentifier
   name        String   @unique @db.NVarChar(200)
   description String   @db.NVarChar(Max)
+  resumes     Resume[]
   createdAt   DateTime @default(now()) @db.DateTime2
   updatedAt   DateTime @updatedAt @db.DateTime2
 }

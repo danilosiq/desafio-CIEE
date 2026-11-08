@@ -60,17 +60,19 @@ export function useDeleteResume() {
   return useMutation({
     mutationFn: deleteResume,
     onSuccess: async (_, { id }) => {
-      client.setQueryData<InfiniteData<ResumeListPage>>(resumeKeys.all, (data) =>
-        data
-          ? {
-              ...data,
-              pages: data.pages.map((page) => ({
-                ...page,
-                items: page.items.filter((row) => row.id !== id),
-                total: Math.max(0, page.total - 1),
-              })),
-            }
-          : data,
+      client.setQueryData<InfiniteData<ResumeListPage>>(
+        resumeKeys.all,
+        (data) =>
+          data
+            ? {
+                ...data,
+                pages: data.pages.map((page) => ({
+                  ...page,
+                  items: page.items.filter((row) => row.id !== id),
+                  total: Math.max(0, page.total - 1),
+                })),
+              }
+            : data,
       );
       await client.invalidateQueries({ queryKey: resumeKeys.all });
     },

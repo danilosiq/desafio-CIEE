@@ -13,6 +13,7 @@ type ResumePayload = {
   email?: unknown;
   phone?: unknown;
   areaOfExpertise?: unknown;
+  areaOfExpertiseId?: unknown;
   professionalSummary?: unknown;
 };
 
@@ -21,6 +22,7 @@ export type ValidResumeInput = {
   email: string;
   phone: string | null;
   areaOfExpertise: string | null;
+  areaOfExpertiseId: string | null;
   professionalSummary: string | null;
 };
 
@@ -42,7 +44,9 @@ export function validateResumeInput(payload: ResumePayload): ValidResumeInput {
   else if (!emailPattern.test(email)) details.email = "Informe um e-mail válido.";
   const phone = optionalText(payload.phone);
   const areaOfExpertise = optionalText(payload.areaOfExpertise);
+  const areaOfExpertiseId = optionalText(payload.areaOfExpertiseId);
+  if (payload.areaOfExpertiseId != null && (typeof payload.areaOfExpertiseId !== "string" || !areaOfExpertiseId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(areaOfExpertiseId))) details.areaOfExpertiseId = "Área de atuação inválida.";
   const professionalSummary = optionalText(payload.professionalSummary);
   if (Object.keys(details).length) throw new InvalidResumeDataError(details);
-  return { fullName, email, phone, areaOfExpertise, professionalSummary };
+  return { fullName, email, phone, areaOfExpertise, areaOfExpertiseId, professionalSummary };
 }

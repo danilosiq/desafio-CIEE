@@ -40,7 +40,8 @@ export function validateResume(input: ResumeInput): ResumeErrors {
   return errors;
 }
 export function formatPhone(input: string): string {
-  const digits = input.replace(/\D/g, "").slice(0, 11);
+  const digits = input.replace(/\D/g, "");
+  if (input.trim().startsWith("+") || digits.length > 11) return input.trim();
   if (!digits) return "";
   if (digits.length < 3) return `(${digits}`;
   const area = digits.slice(0, 2);
@@ -49,7 +50,10 @@ export function formatPhone(input: string): string {
   return `(${area}) ${rest.slice(0, prefix)}${rest.length > prefix ? `-${rest.slice(prefix)}` : ""}`;
 }
 export function validatePdf(file: File): string | null {
-  if (file.type !== "application/pdf" || !/\.pdf$/i.test(file.name))
+  if (
+    (file.type && file.type !== "application/pdf") ||
+    !/\.pdf$/i.test(file.name)
+  )
     return "Selecione um arquivo no formato PDF.";
   if (!file.size) return "O PDF está vazio. Escolha outro arquivo.";
   if (file.size > MAX_PDF_BYTES) return "O arquivo deve ter no máximo 5 MB.";
