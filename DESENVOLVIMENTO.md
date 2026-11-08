@@ -121,9 +121,9 @@ Em testes, foram:
 
 - 81 testes do backend
 - 25 testes de integração com SQL Server
-- 75 testes do frontend, em 14 suítes
+- 76 testes do frontend, em 14 suítes
 - 32 testes E2E de navegador
-- 213 testes aprovados ao todo
+- 214 testes aprovados ao todo
 
 ## Tempo aproximado dedicado ao desafio
 
