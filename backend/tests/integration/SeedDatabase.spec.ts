@@ -21,11 +21,13 @@ it('seeds 60 candidates and 30 areas, remains repeatable and preserves existing 
     expect(await client.areaOfExpertise.count({ where: { name: { in: names } } })).toBe(30);
     const candidate = await client.resume.findUniqueOrThrow({ where: { email: emails[0] } });
     const area = await client.areaOfExpertise.findUniqueOrThrow({ where: { name: names[0] } });
-    await client.resume.update({ where: { id: candidate.id }, data: { fullName: 'Alteração que deve ser preservada' } });
+    const originalArea = await client.areaOfExpertise.findUniqueOrThrow({ where: { name: seedCandidates[0].areaOfExpertise! } });
+    expect(candidate.areaOfExpertiseId).toBe(originalArea.id);
+    await client.resume.update({ where: { id: candidate.id }, data: { fullName: 'Alteração que deve ser preservada', areaOfExpertise: 'Outra área informada', areaOfExpertiseId: null } });
     await client.areaOfExpertise.update({ where: { id: area.id }, data: { description: 'Descrição que deve ser preservada' } });
     await seedDatabase(client);
     expect(await client.resume.count({ where: { email: { in: emails } } })).toBe(60);
     expect(await client.areaOfExpertise.count({ where: { name: { in: names } } })).toBe(30);
-    expect(await client.resume.findUnique({ where: { id: candidate.id } })).toMatchObject({ fullName: 'Alteração que deve ser preservada' });
+    expect(await client.resume.findUnique({ where: { id: candidate.id } })).toMatchObject({ fullName: 'Alteração que deve ser preservada', areaOfExpertise: 'Outra área informada', areaOfExpertiseId: null });
     expect(await client.areaOfExpertise.findUnique({ where: { id: area.id } })).toMatchObject({ description: 'Descrição que deve ser preservada' });
 });

@@ -26,7 +26,7 @@ export async function seedDatabase(client: PrismaClient): Promise<{
         await transaction.resume.upsert({
           where: { email: candidate.email },
           create: data,
-          update: data,
+          update: {},
         });
       }
     },
