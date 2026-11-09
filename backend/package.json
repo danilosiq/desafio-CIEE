@@ -8,14 +8,12 @@
     "npm": ">=11.6.2 <12"
   },
   "dependencies": {
-    "@napi-rs/canvas": "0.1.100",
     "@prisma/adapter-mssql": "7.10.1",
     "@prisma/client": "7.10.1",
     "date-fns": "4.4.0",
     "express": "5.3.0",
     "multer": "2.5.0",
     "pdf-parse": "2.4.5",
-    "pdfjs-dist": "5.4.624",
     "swagger-ui-express": "5.0.1"
   },
   "devDependencies": {

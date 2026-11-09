@@ -40,7 +40,6 @@ Os nomes e exemplos deste documento são genéricos e não definem funcionalidad
 - Microsoft SQL Server como banco de dados relacional
 - Swagger UI com especificação OpenAPI para documentação das rotas
 - `pdf-parse` para extração local de texto e regras determinísticas para sugerir nome, e-mail e telefone
-- PDF.js (`pdfjs-dist`) com `@napi-rs/canvas` para renderizar páginas de PDF em imagens no backend Node.js
 
 Não adicionar frameworks, bibliotecas de validação ou containers de injeção de dependência sem necessidade concreta. Injeção por construtor e composição manual são suficientes como padrão inicial.
 
@@ -258,7 +257,7 @@ O exemplo demonstra apenas a separação entre contrato e caso de uso. A decisã
 - Exigir nome completo e e-mail válido; telefone, área ou cargo de interesse e resumo profissional são campos opcionais.
 - Realizar a leitura do PDF no backend e tentar identificar nome, e-mail e telefone para revisão e correção no formulário antes de salvar.
 - A extração não deve cadastrar o candidato automaticamente nem substituir a confirmação dos dados pelo usuário.
-- A ausência do PDF, campos não identificados ou falhas no OCR não podem impedir o cadastro manual.
+- A ausência do PDF, campos não identificados ou falhas na leitura do PDF não podem impedir o cadastro manual.
 - Persistir os cadastros no SQL Server e disponibilizar listagem e detalhes pelo backend.
 - Registrar tecnologias e versões no `../README.md`, limitações da extração e participação da IA no `../DESENVOLVIMENTO.md`, conforme solicitado no desafio.
 

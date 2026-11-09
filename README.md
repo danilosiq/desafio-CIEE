@@ -51,7 +51,7 @@ Para desenvolvimento sem o frontend em container, instale suas dependências com
 
 A leitura usa `pdf-parse` e regras locais. PDFs sem texto selecionável, inclusive digitalizados somente como imagem, não são reconhecidos; a interface permite continuar manualmente. A identificação de nome é heurística: currículos de duas colunas, nomes de uma palavra ou cabeçalhos pouco convencionais podem produzir sugestões incompletas ou incorretas. Revise os dados antes de confirmar.
 
-O limite do arquivo é **5 MiB (5.242.880 bytes)**. A extração usa `PDF_MAX_PAGES` (padrão `20`), `PDF_PARSE_TIMEOUT_MS` (`15000`) e `PDF_PARSE_CONCURRENCY` (`2`); limites excedidos geram erro explícito. Arquivos e texto não são persistidos como parte do cadastro. A renderização separada `POST /pdf/render` mantém `PDF_RENDER_SCALE` e `PDF_RENDER_MAX_PIXELS` como configurações próprias. Consulte o Swagger para formatos de resposta e erros.
+O limite do arquivo é **5 MiB (5.242.880 bytes)**. A extração usa `PDF_MAX_PAGES` (padrão `20`), `PDF_PARSE_TIMEOUT_MS` (`15000`) e `PDF_PARSE_CONCURRENCY` (`2`); limites excedidos geram erro explícito. Arquivos e texto não são persistidos como parte do cadastro. Consulte o Swagger para formatos de resposta e erros.
 
 ## Testes
 

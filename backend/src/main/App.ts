@@ -17,7 +17,6 @@ import { UpdateResumeController } from "../modules/resumes/interfaces/http/contr
 import { DeleteResumeController } from "../modules/resumes/interfaces/http/controllers/DeleteResumeController";
 import { createResumeRoutes } from "../modules/resumes/interfaces/http/routes/ResumeRoutes";
 import { createAreaRoutes } from "../modules/areas-of-expertise/interfaces/http/AreaRoutes";
-import { createPdfRoutes } from "../modules/resume-processing/interfaces/http/PdfRoutes";
 import { createScanRoutes } from "../modules/resume-processing/interfaces/http/ScanRoutes";
 import { openApi } from "../infra/http/documentation/OpenApi";
 
@@ -48,7 +47,6 @@ export function createApp(repository: ResumeRepository = defaultRepository()): e
   app.get("/docs", (_request, response) => { response.redirect("/docs/"); });
   app.get("/docs/", swaggerUi.setup(openApi));
   app.use("/docs", swaggerUi.serve);
-  app.use("/pdf", createPdfRoutes());
   app.use(createScanRoutes());
   app.use("/areas-of-expertise", createAreaRoutes(() => {
     const { PrismaAreaOfExpertiseRepository } = require("../modules/areas-of-expertise/infra/repositories/PrismaAreaOfExpertiseRepository") as typeof import("../modules/areas-of-expertise/infra/repositories/PrismaAreaOfExpertiseRepository");

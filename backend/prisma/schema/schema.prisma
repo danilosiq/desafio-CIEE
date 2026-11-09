@@ -21,13 +21,6 @@ model Resume {
   updatedAt           DateTime @updatedAt @db.DateTime2
 }
 
-model ResumeProcessingJob {
-  id        String   @id @default(uuid()) @db.UniqueIdentifier
-  status    String   @default("Processing") @db.NVarChar(10)
-  createdAt DateTime @default(now()) @db.DateTime2
-  updatedAt DateTime @updatedAt @db.DateTime2
-}
-
 model AreaOfExpertise {
   id          String   @id @default(uuid()) @db.UniqueIdentifier
   name        String   @unique @db.NVarChar(200)

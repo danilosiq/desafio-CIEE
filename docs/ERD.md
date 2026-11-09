@@ -26,14 +26,6 @@ erDiagram
         datetime2 updatedAt
     }
 
-    ResumeProcessingJob {
-        uuid id PK
-        nvarchar status "valor inicial: Processing"
-        datetime2 createdAt
-        datetime2 updatedAt
-    }
 ```
 
 Uma área pode estar vinculada a nenhum ou vários currículos. Um currículo pode estar vinculado a nenhuma ou uma área; o campo de texto livre também é opcional. A exclusão de uma área referenciada é bloqueada pela chave estrangeira.
-
-`ResumeProcessingJob` não possui relacionamento com as demais tabelas no schema atual.

@@ -55,31 +55,13 @@ console.log(JSON.stringify({created:31}));
   expect(second.items).toHaveLength(1);
   expect(first.total).toBe(31);
 });
-it('renders a fictitious PDF using PDF.js and native canvas inside the runtime image', () => {
-  expect(inBackend(`
-(async()=>{
-const {createCanvas}=require('@napi-rs/canvas');
-const {getDocument}=await import('pdfjs-dist/legacy/build/pdf.mjs');
-const content='BT /F1 16 Tf 20 40 Td (CIEE TEST) Tj ET';
-const objects=[
-'<< /Type /Catalog /Pages 2 0 R >>',
-'<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 100] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',
-'<< /Length '+Buffer.byteLength(content)+' >>\\nstream\\n'+content+'\\nendstream',
-'<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'];
-let pdf='%PDF-1.4\\n';const offsets=[0];
-objects.forEach((object,index)=>{offsets.push(Buffer.byteLength(pdf));pdf+=(index+1)+' 0 obj\\n'+object+'\\nendobj\\n';});
-const xref=Buffer.byteLength(pdf);pdf+='xref\\n0 6\\n0000000000 65535 f \\n';
-offsets.slice(1).forEach(offset=>pdf+=String(offset).padStart(10,'0')+' 00000 n \\n');
-pdf+='trailer\\n<< /Size 6 /Root 1 0 R >>\\nstartxref\\n'+xref+'\\n%%EOF';
-const document=await getDocument({data:new Uint8Array(Buffer.from(pdf)),useSystemFonts:true}).promise;
-const page=await document.getPage(1);const viewport=page.getViewport({scale:1});
-const canvas=createCanvas(viewport.width,viewport.height);
-await page.render({canvas,canvasContext:canvas.getContext('2d'),viewport}).promise;
-const png=canvas.toBuffer('image/png');await document.destroy();
-console.log(JSON.stringify({width:canvas.width,height:canvas.height,png:png.subarray(1,4).toString()==='PNG'}));
-})().catch(error=>{console.error(error.message);process.exitCode=1;});
-`)).toEqual({ width: 200, height: 100, png: true });
+it('extrai texto de um PDF fictício no backend em container', async () => {
+  const { makeTextPdf } = await import('../fixtures/MakeTextPdf');
+  const form = new FormData();
+  form.append('file', new Blob([new Uint8Array(makeTextPdf(['Ana Maria Silva', 'ana@example.com', 'Telefone: (11) 99999-0000']))], { type: 'application/pdf' }), 'cv.pdf');
+  const response = await fetch('http://127.0.0.1:13333/scan', { method: 'POST', body: form });
+  expect(response.status).toBe(200);
+  expect((await response.json()).data).toMatchObject({ name: 'Ana Maria Silva', email: 'ana@example.com' });
 });
 it('preserves database records when backend and SQL Server containers are recreated', () => {
   inBackend(databaseSetup + `

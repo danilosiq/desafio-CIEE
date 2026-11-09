@@ -5,15 +5,12 @@ import {
   disconnectDatabase,
 } from "../../src/infra/database/PrismaClient";
 import { PrismaResumeRepository } from "../../src/modules/resumes/infra/repositories/PrismaResumeRepository";
-import { PrismaResumeProcessingJobRepository } from "../../src/modules/resume-processing/infra/repositories/PrismaResumeProcessingJobRepository";
 import { DuplicateEmailError } from "../../src/modules/resumes/domain/DuplicateEmailError";
 
 requireTestDatabase();
 const client = getPrismaClient();
 const resumes = new PrismaResumeRepository(client);
-const jobs = new PrismaResumeProcessingJobRepository(client);
 const emails: string[] = [];
-const jobIds: string[] = [];
 function email(): string {
   const value = `${randomUUID()}@example.com`;
   emails.push(value);
@@ -22,9 +19,6 @@ function email(): string {
 afterAll(async () => {
   try {
     await client.resume.deleteMany({ where: { email: { in: emails } } });
-    await client.resumeProcessingJob.deleteMany({
-      where: { id: { in: jobIds } },
-    });
   } finally {
     await disconnectDatabase();
   }
@@ -90,22 +84,6 @@ it("enforces uniqueness and normalization even for direct database writes", asyn
     }),
   ).rejects.toThrow();
 });
-it("creates a Processing job without a Resume and finishes it", async () => {
-  const job = await jobs.create();
-  jobIds.push(job.id);
-  expect(job.status).toBe("Processing");
-  expect((await jobs.finish(job.id)).status).toBe("Finished");
-  expect(await jobs.findById(job.id)).toMatchObject({ status: "Finished" });
-});
-it.each(["Failed", "processing", "Finished "])(
-  "rejects unsupported job state %s at the database boundary",
-  async (status) => {
-    await expect(
-      client.resumeProcessingJob.create({ data: { status } }),
-    ).rejects.toThrow();
-  },
-);
 it("returns null for missing resources", async () => {
   expect(await resumes.findById(randomUUID())).toBeNull();
-  expect(await jobs.findById(randomUUID())).toBeNull();
 });
